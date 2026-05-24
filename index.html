@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PowerForm Mockup Tool</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #f5f5f7; overflow: hidden; height: 100%; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Helvetica, sans-serif; }
+    *, *::before, *::after { box-sizing: border-box; }
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+    select { -webkit-appearance: menulist; appearance: menulist; }
+    @media print {
+      body { background: #fff !important; overflow: visible !important; }
+      body > *:not(.print-print-wrap) { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>
