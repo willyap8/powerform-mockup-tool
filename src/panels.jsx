@@ -579,6 +579,7 @@ export function openPrintWindow(form, options) {
 <meta charset="utf-8">
 <title>Print Preview — ${esc(form.title || 'PowerForm')}</title>
 <style>
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body { margin: 0; padding: 0; background: #f3f4f6; }
   body { font-family: system-ui, -apple-system, "Segoe UI", Helvetica, sans-serif; }
   .toolbar { position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid #e5e7eb; padding: 10px 20px; display: flex; align-items: center; gap: 12px; }
@@ -590,6 +591,7 @@ export function openPrintWindow(form, options) {
   .page { margin: 30px auto; width: 870px; background: #fff; box-shadow: 0 2px 14px rgba(15, 23, 42, 0.08); padding: 5px 5px 30px; position: relative; }
   .canvas { position: relative; width: 860px; height: ${canvasH + 30}px; }
   @media print {
+    *, html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .toolbar { display: none !important; }
     body { background: #fff; }
     .page { margin: 0; box-shadow: none; padding: 0; width: auto; }
