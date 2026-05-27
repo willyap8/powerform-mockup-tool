@@ -12,10 +12,9 @@ import { MenuBar, StyleGuideModal } from './menus';
 import {
   serializeDesign, deserializeDesign,
   downloadDesignFile, openDesignFile,
-  loadSlots, saveToSlot, getSlot,
+  getSlot, saveToSlot,
   getCurrentSlotName, setCurrentSlotName,
   AutosaveIndicator, SaveSlotModal, OpenSlotModal, ConfirmDiscardModal,
-  relativeTime,
 } from './storage';
 import {
   HistoryPanel, PropertiesPanel, ContextMenu,
@@ -45,11 +44,28 @@ export default function App() {
   const [tweaks, setTweak] = useTweaks({ gridSnap: 'off' });
   const gridStep = tweaks.gridSnap === '5px' ? 5 : tweaks.gridSnap === '10px' ? 10 : 0;
 
-  const initialFormRef = useRef(null);
-  if (initialFormRef.current === null) initialFormRef.current = buildDemoForm();
-  const [form, setForm]           = useState(() => initialFormRef.current);
+  const initialStateRef = useRef(null);
+  if (initialStateRef.current === null) {
+    const slotName = getCurrentSlotName();
+    const slot = slotName ? getSlot(slotName) : null;
+    let initialForm = null, initialNotes = '', description = 'Initial demo form loaded';
+    if (slot) {
+      try {
+        const design = deserializeDesign(slot);
+        initialForm = { title: design.title || ' Nursing Assessment', blocks: design.blocks };
+        initialNotes = design.notes || '';
+        description = "Restored '" + slotName + "' from browser";
+      } catch (e) {
+        initialForm = buildDemoForm();
+      }
+    } else {
+      initialForm = buildDemoForm();
+    }
+    initialStateRef.current = { form: initialForm, notes: initialNotes, description, slotName: slot ? slotName : null };
+  }
+  const [form, setForm]           = useState(() => initialStateRef.current.form);
   const [history, setHistory]     = useState(() => [
-    { form: cloneForm(initialFormRef.current), description: 'Initial demo form loaded', ts: Date.now() }
+    { form: cloneForm(initialStateRef.current.form), description: initialStateRef.current.description, ts: Date.now() }
   ]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [previewIndex, setPreviewIndex] = useState(null);
@@ -67,7 +83,7 @@ export default function App() {
   const [showNotesPane,    setShowNotesPane]    = useState(false);
 
   // Notes (documentation; not part of undo history)
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(() => initialStateRef.current.notes);
   const notesRef = useRef('');
   useEffect(() => { notesRef.current = notes; }, [notes]);
 
@@ -84,21 +100,16 @@ export default function App() {
 
   // Save/Open modals
   const [saveSlotOpen,     setSaveSlotOpen]     = useState(false);
+  const [saveSlotInitial,  setSaveSlotInitial]  = useState('');
   const [openSlotOpen,     setOpenSlotOpen]     = useState(false);
   const [pendingDestructive, setPendingDestructive] = useState(null);
 
-  // Dirty tracking
-  const lastSavedRef = useRef(null);
-  const [lastSaveName, setLastSaveName] = useState('');
+  // Dirty tracking — lastSavedSnapshot is state (not a ref) so saves trigger re-render.
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState(null);
+  const [lastSaveName, setLastSaveName] = useState(() => initialStateRef.current.slotName || '');
 
-  // Autosave
+  // Active save slot
   const [currentSlot, setCurrentSlot] = useState(() => getCurrentSlotName());
-  const [autosaveAt,  setAutosaveAt]  = useState(() => {
-    const n = getCurrentSlotName();
-    const s = n ? getSlot(n) : null;
-    return s && s.savedAt ? s.savedAt : null;
-  });
-  const [restoreOffer, setRestoreOffer] = useState(null);
 
   // Drag
   const [dragGuides, setDragGuides] = useState([]);
@@ -360,61 +371,33 @@ export default function App() {
     () => JSON.stringify({ blocks: serializeDesign(form, notes).blocks, notes }),
     [form, notes]
   );
-  const dirty = lastSavedRef.current !== null && lastSavedRef.current !== currentSaved;
+  const dirty = lastSavedSnapshot !== null && lastSavedSnapshot !== currentSaved;
   useEffect(() => {
-    if (lastSavedRef.current === null) lastSavedRef.current = currentSaved;
+    if (lastSavedSnapshot === null) setLastSavedSnapshot(currentSaved);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // -------------------------------------------------------------------------
-  // Autosave (2s debounce after each form change)
+  // Warn before unload if there are unsaved changes
   // -------------------------------------------------------------------------
   useEffect(() => {
-    if (!currentSlot) return;
-    if (disclaimerOpen) return;
-    if (isPreviewing) return;
-    const timer = setTimeout(() => {
-      const slots = loadSlots();
-      if (!slots[currentSlot]) {
-        setCurrentSlot(null);
-        setCurrentSlotName(null);
-        setAutosaveAt(null);
-        return;
-      }
-      const ok = saveToSlot(currentSlot, formRef.current, notesRef.current);
-      if (ok) {
-        const s = getSlot(currentSlot);
-        setAutosaveAt(s && s.savedAt ? s.savedAt : new Date().toISOString());
-      }
-    }, 2000);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSaved, currentSlot, disclaimerOpen, isPreviewing]);
-
-  // -------------------------------------------------------------------------
-  // Restore offer (once after disclaimer dismissed)
-  // -------------------------------------------------------------------------
-  const restoreCheckedRef = useRef(false);
-  useEffect(() => {
-    if (disclaimerOpen) return;
-    if (restoreCheckedRef.current) return;
-    restoreCheckedRef.current = true;
-    if (!currentSlot) return;
-    const slot = getSlot(currentSlot);
-    if (!slot || !Array.isArray(slot.blocks)) return;
-    if (JSON.stringify(slot.blocks) === currentSaved) return;
-    setRestoreOffer({ slotName: currentSlot, savedAt: slot.savedAt, slot });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [disclaimerOpen]);
+    const handler = (e) => {
+      if (!dirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [dirty]);
 
   // -------------------------------------------------------------------------
   // Save / Open handlers
   // -------------------------------------------------------------------------
   const markSaved = () => {
-    lastSavedRef.current = JSON.stringify({
+    setLastSavedSnapshot(JSON.stringify({
       blocks: serializeDesign(formRef.current, notesRef.current).blocks,
       notes: notesRef.current,
-    });
+    }));
   };
 
   const handleSaveFile = () => {
@@ -434,12 +417,10 @@ export default function App() {
     setActiveTool(null);
     setEditingId(null);
     setFieldValues({});
-    setTimeout(() => {
-      lastSavedRef.current = JSON.stringify({
-        blocks: serializeDesign(newForm, newNotes).blocks,
-        notes: newNotes,
-      });
-    }, 0);
+    setLastSavedSnapshot(JSON.stringify({
+      blocks: serializeDesign(newForm, newNotes).blocks,
+      notes: newNotes,
+    }));
     if (sourceName) setLastSaveName(sourceName.replace(/\.powerform\.json$|\.json$/i, ''));
   };
 
@@ -454,12 +435,38 @@ export default function App() {
     else proceed();
   };
 
-  const handleSaveSlot = () => setSaveSlotOpen(true);
+  // Quick save (used by the 💾 icon): writes straight to the active slot if one
+  // exists, otherwise opens the modal with the most reasonable starting name.
+  const handleQuickSave = () => {
+    if (currentSlot && getSlot(currentSlot)) {
+      const ok = saveToSlot(currentSlot, formRef.current, notesRef.current);
+      if (ok) markSaved();
+      else alert('Could not save — browser storage may be full or blocked.');
+      return;
+    }
+    if (currentSlot) {
+      // Slot was removed externally; clear the stale reference.
+      setCurrentSlot(null);
+      setCurrentSlotName(null);
+    }
+    setSaveSlotInitial(lastSaveName || '');
+    setSaveSlotOpen(true);
+  };
+
+  // "Save as" (File menu): always opens the modal, pre-filled with the active
+  // slot name if one exists so the user can confirm or change it.
+  const handleSaveSlot = () => {
+    setSaveSlotInitial(currentSlot || '');
+    setSaveSlotOpen(true);
+  };
   const handleOpenSlot = () => setOpenSlotOpen(true);
   const handlePickSlot = (name, payload) => {
     try {
       const design = deserializeDesign(payload);
       loadDesign(design, name);
+      // Make this slot the active save target so subsequent saves target this slot.
+      setCurrentSlot(name);
+      setCurrentSlotName(name);
       setOpenSlotOpen(false);
     } catch (e) {
       alert('Could not load slot:\n\n' + (e.message || String(e)));
@@ -471,15 +478,16 @@ export default function App() {
   // -------------------------------------------------------------------------
   const onResizeStart = (block, e) => {
     if (!editLayoutOn || isPreviewing) return;
+    const isText = block.type === 'text';
     const startX = e.clientX, startY = e.clientY;
-    const startW = block.width  || 220;
+    const startW = block.width  || (isText ? 300 : 220);
     const startH = block.height || 22;
     const MIN_W = 80, MIN_H = 22;
     const onMove = (ev) => {
       let nw = Math.max(MIN_W, startW + (ev.clientX - startX));
       let nh = Math.max(MIN_H, startH + (ev.clientY - startY));
       if (gridStep) { nw = Math.round(nw / gridStep) * gridStep; nh = Math.round(nh / gridStep) * gridStep; }
-      updateBlock(block.id, { width: nw, height: nh });
+      updateBlock(block.id, isText ? { width: nw } : { width: nw, height: nh });
     };
     const onUp = () => {
       window.removeEventListener('mousemove', onMove);
@@ -588,7 +596,7 @@ export default function App() {
       }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's' && !e.shiftKey) {
         e.preventDefault();
-        if (!isPreviewing) handleSaveFile();
+        if (!isPreviewing) handleQuickSave();
         return;
       }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
@@ -668,9 +676,11 @@ export default function App() {
       setActiveTool(null);
       setEditingId(null);
       setFieldValues({});
-      setTimeout(() => {
-        lastSavedRef.current = JSON.stringify({ blocks: serializeDesign(fresh, '').blocks, notes: '' });
-      }, 0);
+      setLastSavedSnapshot(JSON.stringify({ blocks: serializeDesign(fresh, '').blocks, notes: '' }));
+      // Detach from any previously loaded slot so the indicator reflects a fresh form.
+      setCurrentSlot(null);
+      setCurrentSlotName(null);
+      setLastSaveName('');
     };
     if (dirty) {
       setPendingDestructive({ message: 'Reset all will discard your unsaved changes and reload the demo form.', confirmLabel: 'Discard and reset', run: doReset });
@@ -746,8 +756,8 @@ export default function App() {
         />
         <AutosaveIndicator
           slotName={currentSlot}
-          lastSavedAt={autosaveAt}
-          onClickSave={handleSaveSlot}
+          dirty={dirty}
+          onClickSave={handleQuickSave}
         />
         <div style={{ flex: 1 }} />
         <button
@@ -872,13 +882,14 @@ export default function App() {
 
       <ContextMenu menu={contextMenu} onAction={onContextAction} onClose={() => setContextMenu(null)} />
 
-      {showPrintOptions && <PrintOptionsDialog form={effectiveForm} onClose={() => setShowPrintOptions(false)} />}
+      {showPrintOptions && <PrintOptionsDialog form={effectiveForm} displayName={lastSaveName || currentSlot || effectiveForm.title} onClose={() => setShowPrintOptions(false)} />}
       {showStyleGuide   && <StyleGuideModal onClose={() => setShowStyleGuide(false)} />}
 
       {saveSlotOpen && (
         <SaveSlotModal
           form={formRef.current}
           notes={notesRef.current}
+          initialName={saveSlotInitial}
           onClose={() => setSaveSlotOpen(false)}
           onSaved={(name) => {
             markSaved();
@@ -886,33 +897,6 @@ export default function App() {
             setSaveSlotOpen(false);
             setCurrentSlot(name);
             setCurrentSlotName(name);
-            const s = getSlot(name);
-            setAutosaveAt(s && s.savedAt ? s.savedAt : new Date().toISOString());
-          }}
-        />
-      )}
-
-      {restoreOffer && (
-        <ConfirmDiscardModal
-          message={
-            <span>
-              Found autosaved work in slot <strong>{restoreOffer.slotName}</strong>
-              {restoreOffer.savedAt && <> · last saved {relativeTime(restoreOffer.savedAt)}</>}.
-              Restore it instead of the demo form?
-            </span>
-          }
-          confirmLabel="Restore"
-          onCancel={() => setRestoreOffer(null)}
-          onConfirm={() => {
-            const slot = restoreOffer.slot;
-            setRestoreOffer(null);
-            try {
-              const design = deserializeDesign(slot);
-              loadDesign(design, restoreOffer.slotName);
-              setAutosaveAt(slot.savedAt || new Date().toISOString());
-            } catch (e) {
-              alert('Could not restore: ' + (e.message || String(e)));
-            }
           }}
         />
       )}

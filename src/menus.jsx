@@ -102,7 +102,7 @@ export function MenuBar(props) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
       <MenuButton name="File" openName={openName} setOpenName={setOpenName} width={220}>
-        <MenuItem label="Save to file…"        hint="⌘S" onClick={onSaveFile} disabled={isPreviewing} />
+        <MenuItem label="Save to file…"                 onClick={onSaveFile} disabled={isPreviewing} />
         <MenuItem label="Open file…"                    onClick={onOpenFile}  disabled={isPreviewing} />
         <MenuSeparator />
         <MenuItem label="Save to browser…"              onClick={onSaveSlot}  disabled={isPreviewing} />

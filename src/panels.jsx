@@ -492,8 +492,9 @@ export function ContextMenu({ menu, onAction, onClose }) {
 // ---------------------------------------------------------------------------
 // openPrintWindow — opens a new tab with the form rendered as static HTML
 // ---------------------------------------------------------------------------
-export function openPrintWindow(form, options) {
+export function openPrintWindow(form, options, displayName) {
   const includeNotes = !!(options && options.includeNotes);
+  const headerName = (displayName || form.title || 'PowerForm').toString().trim() || 'PowerForm';
   const w = window.open('', '_blank', 'width=1024,height=900,scrollbars=yes');
   if (!w) {
     alert('Pop-up blocked. Please allow pop-ups for this site to use Print Preview.');
@@ -577,7 +578,7 @@ export function openPrintWindow(form, options) {
   const html = `<!doctype html>
 <html><head>
 <meta charset="utf-8">
-<title>Print Preview — ${esc(form.title || 'PowerForm')}</title>
+<title>Print Preview — ${esc(headerName)}</title>
 <style>
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body { margin: 0; padding: 0; background: #f3f4f6; }
@@ -601,7 +602,7 @@ export function openPrintWindow(form, options) {
 </style>
 </head><body>
 <div class="toolbar">
-  <h1>Print Preview — ${esc((form.title || 'PowerForm').trim())}</h1>
+  <h1>Print Preview — ${esc(headerName)}</h1>
   <span class="hint">Sticky notes: ${includeNotes ? 'included' : 'hidden'}</span>
   <span class="spacer"></span>
   <button onclick="window.print()" class="primary">🖨 Print / Save as PDF</button>
@@ -618,7 +619,7 @@ export function openPrintWindow(form, options) {
 // ---------------------------------------------------------------------------
 // PrintOptionsDialog
 // ---------------------------------------------------------------------------
-export function PrintOptionsDialog({ form, onClose }) {
+export function PrintOptionsDialog({ form, displayName, onClose }) {
   const [includeNotes, setIncludeNotes] = useState(false);
   const hasNotes = form.blocks.some((b) => b.type === 'sticky');
   return (
@@ -656,7 +657,7 @@ export function PrintOptionsDialog({ form, onClose }) {
         <div style={{ padding: '12px 18px', background: '#fafafa', borderTop: '1px solid #ececef', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <button onClick={onClose} style={panelBtn(false)}>Cancel</button>
           <button
-            onClick={() => { openPrintWindow(form, { includeNotes }); onClose(); }}
+            onClick={() => { openPrintWindow(form, { includeNotes }, displayName); onClose(); }}
             style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600, background: 'rgb(0, 48, 135)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
           >Open Print View</button>
         </div>

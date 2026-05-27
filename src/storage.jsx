@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { uid } from './constants';
 
 const SAVE_FILE_VERSION = 1;
@@ -181,23 +181,11 @@ export function formatStamp(iso) {
   } catch (e) { return ''; }
 }
 
-export function relativeTime(iso) {
-  try {
-    const d = new Date(iso);
-    const diff = Date.now() - d.getTime();
-    if (diff < 30 * 1000)             return 'just now';
-    if (diff < 60 * 1000)             return Math.floor(diff / 1000) + ' sec ago';
-    if (diff < 60 * 60 * 1000)        return Math.floor(diff / 60000) + ' min ago';
-    if (diff < 24 * 60 * 60 * 1000)   return Math.floor(diff / 3600000) + ' hr ago';
-    return d.toLocaleDateString();
-  } catch (e) { return ''; }
-}
-
 // ---------------------------------------------------------------------------
 // Modal — Save to local slot
 // ---------------------------------------------------------------------------
-export function SaveSlotModal({ form, notes, onClose, onSaved }) {
-  const [name, setName] = useState((form.title || '').trim() || 'My PowerForm');
+export function SaveSlotModal({ form, notes, initialName, onClose, onSaved }) {
+  const [name, setName] = useState(() => (initialName == null ? '' : initialName));
   const [confirmOverwrite, setConfirmOverwrite] = useState(false);
   const slots = loadSlots();
   const slotNames = Object.keys(slots).sort();
@@ -363,21 +351,19 @@ export function ConfirmDiscardModal({ message, confirmLabel, onCancel, onConfirm
 }
 
 // ---------------------------------------------------------------------------
-// AutosaveIndicator — text + save button shown in the top bar
+// AutosaveIndicator — dirty/clean badge + save button shown in the top bar
 // ---------------------------------------------------------------------------
-export function AutosaveIndicator({ slotName, lastSavedAt, onClickSave }) {
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    if (!lastSavedAt) return;
-    const id = setInterval(() => setTick((t) => t + 1), 30 * 1000);
-    return () => clearInterval(id);
-  }, [lastSavedAt]);
-
-  let label;
-  if (!slotName || !lastSavedAt) {
-    label = 'Last autosave: never';
+export function AutosaveIndicator({ slotName, dirty, onClickSave }) {
+  let label, bg, border, color, dotColor;
+  if (dirty) {
+    label = 'Unsaved changes' + (slotName ? ' · ' + slotName : '');
+    bg = '#fef3c7'; border = '#fde68a'; color = '#92400e'; dotColor = '#f59e0b';
+  } else if (slotName) {
+    label = 'Saved · ' + slotName;
+    bg = '#ecfdf5'; border = '#a7f3d0'; color = '#065f46'; dotColor = '#10b981';
   } else {
-    label = 'Last autosave: ' + relativeTime(lastSavedAt);
+    label = 'Not yet saved';
+    bg = '#f9fafb'; border = '#e5e7eb'; color = '#6b7280'; dotColor = '#9ca3af';
   }
 
   return (
@@ -385,18 +371,18 @@ export function AutosaveIndicator({ slotName, lastSavedAt, onClickSave }) {
       display: 'flex', alignItems: 'center', gap: 6,
       padding: '4px 6px 4px 10px',
       borderRadius: 999,
-      background: slotName ? '#ecfdf5' : '#f9fafb',
-      border: '1px solid ' + (slotName ? '#a7f3d0' : '#e5e7eb'),
+      background: bg,
+      border: '1px solid ' + border,
       fontSize: 11,
-      color: slotName ? '#065f46' : '#6b7280',
+      color,
       fontFamily: 'system-ui, -apple-system, sans-serif',
       whiteSpace: 'nowrap',
     }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: slotName ? '#10b981' : '#9ca3af' }} />
-      <span>{label}{slotName ? ` · ${slotName}` : ''}</span>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor }} />
+      <span>{label}</span>
       <button
         onClick={onClickSave}
-        title="Save to browser…"
+        title="Save to browser (⌘S / Ctrl+S)"
         style={{
           marginLeft: 4,
           width: 24, height: 22,

@@ -316,7 +316,8 @@ export function Block(props) {
   }
 
   const isField = block.type === 'field';
-  const isResizable = (isField || block.type === 'sticky') && selected && editLayoutOn;
+  const isText = block.type === 'text';
+  const isResizable = (isField || block.type === 'sticky' || isText) && selected && editLayoutOn;
 
   return (
     <div
@@ -333,7 +334,22 @@ export function Block(props) {
       }}
     >
       {inner}
-      {isResizable && (
+      {isResizable && (isText ? (
+        <div
+          onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); onResizeStart && onResizeStart(block, e); }}
+          title="Drag to resize width"
+          style={{
+            position: 'absolute',
+            right: -4, top: -2, bottom: -2,
+            width: 8,
+            background: SELECT_BLUE,
+            border: '1px solid #fff',
+            borderRadius: 2,
+            cursor: 'ew-resize',
+            zIndex: 5,
+          }}
+        />
+      ) : (
         <div
           onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); onResizeStart && onResizeStart(block, e); }}
           title="Drag to resize"
@@ -348,7 +364,7 @@ export function Block(props) {
             clipPath: 'polygon(100% 0, 100% 100%, 0 100%)',
           }}
         />
-      )}
+      ))}
     </div>
   );
 }
