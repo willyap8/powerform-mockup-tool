@@ -73,6 +73,7 @@ export const FIELD_DEFAULTS = {
   time:     { width: 90,  height: 22, label: 'Time' },
   checkbox: { width: 220, height: 22, label: '', options: ['Option 1'] },
   radio:    { width: 220, height: 22, label: '', options: ['Option 1'], selectedIndex: null },
+  dropdown: { width: 180, height: 22, label: '', options: ['Option 1'], selectedIndex: null, placeholder: 'Select…' },
   textarea: { width: 400, height: 90, label: 'Notes' },
 };
 
@@ -133,7 +134,7 @@ export function getBlockRect(block) {
   if (block.type === 'field') {
     const w = block.width || FIELD_DEFAULTS[block.fieldType].width;
     const h = block.height || FIELD_DEFAULTS[block.fieldType].height;
-    if (block.fieldType === 'checkbox' || block.fieldType === 'radio') {
+    if (block.fieldType === 'checkbox' || block.fieldType === 'radio' || block.fieldType === 'dropdown') {
       return { x: block.x, y: block.y, w, h };
     }
     return { x: block.x, y: block.y - FIELD_LABEL_HEIGHT, w, h: h + FIELD_LABEL_HEIGHT };

@@ -11,6 +11,7 @@ const TOOL_GROUPS = [
   { label: 'Choices', tools: [
     { key: 'field:checkbox', icon: '☑', name: 'Checkbox group' },
     { key: 'field:radio',    icon: '◉', name: 'Radio group' },
+    { key: 'field:dropdown', swatch: '#7F9DB9', name: 'Dropdown' },
   ]},
   { label: 'Headers', tools: [
     { key: 'heading1',   swatch: 'rgb(255, 200, 69)', name: 'Heading 1' },

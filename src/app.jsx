@@ -191,14 +191,15 @@ export default function App() {
     if (toolKey.startsWith('field:')) {
       const ft = toolKey.split(':')[1];
       const d = FIELD_DEFAULTS[ft];
-      const isGroup = ft === 'checkbox' || ft === 'radio';
-      const yAdjusted = isGroup ? y : Math.max(y, FIELD_LABEL_HEIGHT + 2);
+      const isNoLabel = ft === 'checkbox' || ft === 'radio' || ft === 'dropdown';
+      const yAdjusted = isNoLabel ? y : Math.max(y, FIELD_LABEL_HEIGHT + 2);
       return {
         id: uid('f'), type: 'field', fieldType: ft,
         label: d.label || '', x, y: yAdjusted,
         width: d.width, height: d.height,
         ...(ft === 'checkbox' ? { options: [...d.options] } : {}),
         ...(ft === 'radio'    ? { options: [...d.options], selectedIndex: null } : {}),
+        ...(ft === 'dropdown' ? { options: [...d.options], selectedIndex: null, placeholder: d.placeholder } : {}),
       };
     }
     if (toolKey.startsWith('text:')) {
@@ -479,6 +480,8 @@ export default function App() {
   const onResizeStart = (block, e) => {
     if (!editLayoutOn || isPreviewing) return;
     const isText = block.type === 'text';
+    const isDropdown = block.type === 'field' && block.fieldType === 'dropdown';
+    const widthOnly = isText || isDropdown;
     const startX = e.clientX, startY = e.clientY;
     const startW = block.width  || (isText ? 300 : 220);
     const startH = block.height || 22;
@@ -487,7 +490,7 @@ export default function App() {
       let nw = Math.max(MIN_W, startW + (ev.clientX - startX));
       let nh = Math.max(MIN_H, startH + (ev.clientY - startY));
       if (gridStep) { nw = Math.round(nw / gridStep) * gridStep; nh = Math.round(nh / gridStep) * gridStep; }
-      updateBlock(block.id, isText ? { width: nw } : { width: nw, height: nh });
+      updateBlock(block.id, widthOnly ? { width: nw } : { width: nw, height: nh });
     };
     const onUp = () => {
       window.removeEventListener('mousemove', onMove);

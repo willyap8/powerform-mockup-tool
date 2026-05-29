@@ -173,7 +173,9 @@ export function PropertiesPanel({ block, onLiveUpdate, onCommitDesc, onApplyAndC
   const isText         = block.type === 'text';
   const isCheckboxGroup = isField && block.fieldType === 'checkbox';
   const isRadioGroup    = isField && block.fieldType === 'radio';
+  const isDropdown      = isField && block.fieldType === 'dropdown';
   const isGroupField    = isCheckboxGroup || isRadioGroup;
+  const isNoLabelField  = isGroupField || isDropdown;
 
   return (
     <div style={{
@@ -202,10 +204,15 @@ export function PropertiesPanel({ block, onLiveUpdate, onCommitDesc, onApplyAndC
         </Row>
 
         {/* Size */}
-        {isField && (
+        {isField && !isDropdown && (
           <Row label="Size">
             <DeferredNumberField value={block.width}  onLive={(v) => onLiveUpdate({ width: v })}  onCommitDesc={() => onCommitDesc('Resized ' + describeBlock(block))} suffix="w" />
             <DeferredNumberField value={block.height} onLive={(v) => onLiveUpdate({ height: v })} onCommitDesc={() => onCommitDesc('Resized ' + describeBlock(block))} suffix="h" />
+          </Row>
+        )}
+        {isDropdown && (
+          <Row label="Width">
+            <DeferredNumberField value={block.width} onLive={(v) => onLiveUpdate({ width: v })} onCommitDesc={() => onCommitDesc('Resized dropdown')} suffix="w" />
           </Row>
         )}
         {isText && (
@@ -215,7 +222,7 @@ export function PropertiesPanel({ block, onLiveUpdate, onCommitDesc, onApplyAndC
         )}
 
         {/* Label */}
-        {(isHeading || (isField && !isGroupField)) && (
+        {(isHeading || (isField && !isNoLabelField)) && (
           <Row label="Label">
             <DeferredInput
               value={block.label || ''}
@@ -260,13 +267,13 @@ export function PropertiesPanel({ block, onLiveUpdate, onCommitDesc, onApplyAndC
                 const ft = e.target.value;
                 const d = FIELD_DEFAULTS[ft];
                 const patch = { fieldType: ft, height: d.height };
-                if ((ft === 'checkbox' || ft === 'radio') && !block.options) patch.options = [...d.options];
-                if (ft === 'radio' && block.selectedIndex === undefined) patch.selectedIndex = null;
+                if ((ft === 'checkbox' || ft === 'radio' || ft === 'dropdown') && !block.options) patch.options = [...d.options];
+                if ((ft === 'radio' || ft === 'dropdown') && block.selectedIndex === undefined) patch.selectedIndex = null;
                 onApplyAndCommit(patch, 'Changed field type → ' + ft);
               }}
               style={inputSt}
             >
-              {['text','number','date','time','checkbox','radio','textarea'].map((t) => (
+              {['text','number','date','time','checkbox','radio','dropdown','textarea'].map((t) => (
                 <option key={t} value={t}>{t}</option>
               ))}
             </select>
@@ -314,6 +321,18 @@ export function PropertiesPanel({ block, onLiveUpdate, onCommitDesc, onApplyAndC
         {isRadioGroup && (
           <Row label="Radio buttons">
             <RadioOptionsEditor
+              options={block.options || []}
+              selectedIndex={block.selectedIndex == null ? null : block.selectedIndex}
+              onLive={(opts, sel) => onLiveUpdate({ options: opts, selectedIndex: sel })}
+              onCommitDesc={(desc) => onCommitDesc(desc)}
+            />
+          </Row>
+        )}
+
+        {/* Dropdown options */}
+        {isDropdown && (
+          <Row label="Dropdown options">
+            <DropdownOptionsEditor
               options={block.options || []}
               selectedIndex={block.selectedIndex == null ? null : block.selectedIndex}
               onLive={(opts, sel) => onLiveUpdate({ options: opts, selectedIndex: sel })}
@@ -427,6 +446,64 @@ function RadioOptionsEditor({ options, selectedIndex, onLive, onCommitDesc }) {
   );
 }
 
+function DropdownOptionsEditor({ options, selectedIndex, onLive, onCommitDesc }) {
+  const setSelected = (i) => {
+    const next = selectedIndex === i ? null : i;
+    onLive(options.slice(), next);
+    onCommitDesc(next == null ? 'Cleared default dropdown option' : "Set default dropdown option → '" + (options[i] || '').trim() + "'");
+  };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
+      <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 2, lineHeight: 1.4 }}>
+        Tap a circle to set the pre-selected default. Shows in the dropdown box instead of the placeholder.
+      </div>
+      {options.map((opt, i) => {
+        const isSel = selectedIndex === i;
+        return (
+          <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <button
+              onClick={() => setSelected(i)}
+              title={isSel ? 'Default — click to clear' : 'Make this the default selection'}
+              style={{
+                width: 16, height: 16, padding: 0,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                border: '1px solid ' + (isSel ? SELECT_BLUE : '#9ca3af'),
+                background: '#fff', borderRadius: '50%', cursor: 'pointer', flex: '0 0 16px',
+              }}
+            >
+              {isSel && <span style={{ display: 'block', width: 8, height: 8, borderRadius: '50%', background: SELECT_BLUE }} />}
+            </button>
+            <DeferredInput
+              value={opt}
+              onLive={(v) => { const next = options.slice(); next[i] = v; onLive(next, selectedIndex); }}
+              onCommitDesc={(v) => onCommitDesc("Edited dropdown option → '" + (v || '').trim() + "'")}
+              style={{ ...inputSt, flex: 1 }}
+              placeholder={'Option ' + (i + 1)}
+            />
+            <button
+              onClick={() => {
+                const next = options.slice(); next.splice(i, 1);
+                let nextSel = selectedIndex;
+                if (selectedIndex === i) nextSel = null;
+                else if (selectedIndex != null && selectedIndex > i) nextSel = selectedIndex - 1;
+                onLive(next, nextSel);
+                onCommitDesc("Removed dropdown option '" + opt + "'");
+              }}
+              disabled={options.length <= 1}
+              title="Remove"
+              style={{ ...panelBtn(false), padding: '2px 6px', opacity: options.length <= 1 ? 0.4 : 1 }}
+            >✕</button>
+          </div>
+        );
+      })}
+      <button
+        onClick={() => { const next = [...options, 'Option ' + (options.length + 1)]; onLive(next, selectedIndex); onCommitDesc('Added dropdown option'); }}
+        style={{ ...panelBtn(false), marginTop: 2, fontSize: 11 }}
+      >+ Add option</button>
+    </div>
+  );
+}
+
 function Row({ label, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -509,8 +586,8 @@ export function openPrintWindow(form, options, displayName) {
     if (b.type === 'field') {
       const fw = b.width  || FIELD_DEFAULTS[b.fieldType].width;
       const fh = b.height || FIELD_DEFAULTS[b.fieldType].height;
-      // Fix: radio groups have no label above them (same as checkbox)
-      if (b.fieldType === 'checkbox' || b.fieldType === 'radio') return { x: b.x, y: b.y, w: fw, h: fh };
+      // Fix: radio groups have no label above them (same as checkbox); dropdown also has no label.
+      if (b.fieldType === 'checkbox' || b.fieldType === 'radio' || b.fieldType === 'dropdown') return { x: b.x, y: b.y, w: fw, h: fh };
       return { x: b.x, y: b.y - FIELD_LABEL_HEIGHT, w: fw, h: fh + FIELD_LABEL_HEIGHT };
     }
     if (b.type === 'text')   return { x: b.x, y: b.y, w: b.width || 300, h: 18 };
@@ -548,6 +625,17 @@ export function openPrintWindow(form, options, displayName) {
       const fw = b.width  || FIELD_DEFAULTS[ft].width;
       const fh = b.height || FIELD_DEFAULTS[ft].height;
       const inputBg = b.mandatory ? MANDATORY_BG : '#fff';
+
+      if (ft === 'dropdown') {
+        const opts = b.options && b.options.length ? b.options : [''];
+        const defIdx = b.selectedIndex == null ? null : b.selectedIndex;
+        const defVal = defIdx != null && opts[defIdx] != null ? opts[defIdx] : '';
+        const placeholder = b.placeholder || 'Select…';
+        const showVal = defVal || placeholder;
+        const valColor = defVal ? NAVY : '#7d8aa0';
+        const bg = b.mandatory && !defVal ? MANDATORY_BG : '#fff';
+        return `<div style="${pos}width:${fw}px;height:${fh}px;box-sizing:border-box;border:1px solid ${INPUT_BORDER};background:${bg};font:${INPUT_FONT};color:${NAVY};padding:0 4px;display:flex;align-items:center;justify-content:space-between;overflow:hidden;"><span style="color:${valColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(showVal)}</span><span style="margin-left:6px;color:${NAVY};font-size:9px;line-height:1;">▾</span></div>`;
+      }
 
       if (ft === 'checkbox' || ft === 'radio') {
         const isRadio = ft === 'radio';

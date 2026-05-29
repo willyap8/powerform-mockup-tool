@@ -129,6 +129,76 @@ function FieldInput({ block, editLayoutOn, value, setValue, values, setValues })
     );
   }
 
+  if (ft === 'dropdown') {
+    const opts = block.options && block.options.length ? block.options : [''];
+    const defaultIdx = block.selectedIndex == null ? null : block.selectedIndex;
+    const defaultVal = defaultIdx != null && opts[defaultIdx] != null ? opts[defaultIdx] : '';
+    const currentVal = value != null && value !== '' ? value : defaultVal;
+    const placeholder = block.placeholder || 'Select…';
+    const showMandatoryBg = block.mandatory && !currentVal;
+
+    const boxStyle = {
+      width: w, height: h,
+      border: '1px solid ' + INPUT_BORDER,
+      background: showMandatoryBg ? MANDATORY_BG : '#ffffff',
+      color: NAVY,
+      font: INPUT_FONT,
+      padding: '0 4px',
+      boxSizing: 'border-box',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      overflow: 'hidden',
+    };
+
+    if (editLayoutOn) {
+      return (
+        <div style={{ ...boxStyle, pointerEvents: 'none', userSelect: 'none' }}>
+          <span style={{
+            color: currentVal ? NAVY : '#7d8aa0',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {currentVal || placeholder}
+          </span>
+          <span style={{ marginLeft: 6, color: NAVY, fontSize: 9, lineHeight: 1 }}>▾</span>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ ...boxStyle, position: 'relative', padding: 0 }}>
+        <select
+          value={currentVal}
+          onChange={(e) => setValue && setValue(e.target.value)}
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{
+            width: '100%', height: '100%',
+            padding: '0 18px 0 4px',
+            border: 'none',
+            background: 'transparent',
+            font: INPUT_FONT,
+            color: currentVal ? NAVY : '#7d8aa0',
+            outline: 'none',
+            appearance: 'none',
+            WebkitAppearance: 'none',
+            MozAppearance: 'none',
+            cursor: 'pointer',
+            boxSizing: 'border-box',
+          }}
+        >
+          {!currentVal && <option value="" disabled hidden>{placeholder}</option>}
+          {opts.map((o, i) => (
+            <option key={i} value={o}>{o}</option>
+          ))}
+        </select>
+        <span style={{
+          position: 'absolute', right: 4, top: '50%',
+          transform: 'translateY(-50%)',
+          color: NAVY, fontSize: 9, lineHeight: 1,
+          pointerEvents: 'none',
+        }}>▾</span>
+      </div>
+    );
+  }
+
   if (ft === 'checkbox' || ft === 'radio') {
     const isRadio = ft === 'radio';
     const opts = block.options && block.options.length ? block.options : [''];
@@ -226,7 +296,8 @@ export function Block(props) {
   const rect = getBlockRect(block);
   const isCheckboxGroup = block.type === 'field' && block.fieldType === 'checkbox';
   const isRadioGroup    = block.type === 'field' && block.fieldType === 'radio';
-  const isGroupField    = isCheckboxGroup || isRadioGroup;
+  const isDropdown      = block.type === 'field' && block.fieldType === 'dropdown';
+  const isNoLabelField  = isCheckboxGroup || isRadioGroup || isDropdown;
 
   const wrapperStyle = {
     position: 'absolute',
@@ -251,14 +322,17 @@ export function Block(props) {
       />
     );
   } else if (block.type === 'field') {
-    if (isGroupField) {
+    if (isNoLabelField) {
+      const isGroup = isCheckboxGroup || isRadioGroup;
       inner = (
         <div style={{ position: 'absolute', left: 0, top: 0 }}>
           <FieldInput
             block={block}
             editLayoutOn={editLayoutOn}
-            values={Array.isArray(fieldValue) ? fieldValue : []}
-            setValues={setFieldValue}
+            value={isGroup ? undefined : fieldValue}
+            setValue={isGroup ? undefined : setFieldValue}
+            values={isGroup && Array.isArray(fieldValue) ? fieldValue : []}
+            setValues={isGroup ? setFieldValue : undefined}
           />
         </div>
       );
@@ -317,6 +391,7 @@ export function Block(props) {
 
   const isField = block.type === 'field';
   const isText = block.type === 'text';
+  const isWidthOnlyResize = isText || isDropdown;
   const isResizable = (isField || block.type === 'sticky' || isText) && selected && editLayoutOn;
 
   return (
@@ -334,7 +409,7 @@ export function Block(props) {
       }}
     >
       {inner}
-      {isResizable && (isText ? (
+      {isResizable && (isWidthOnlyResize ? (
         <div
           onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); onResizeStart && onResizeStart(block, e); }}
           title="Drag to resize width"
