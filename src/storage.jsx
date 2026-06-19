@@ -5,7 +5,7 @@ const SAVE_FILE_VERSION = 1;
 const SAVE_EXT = '.powerform.json';
 const SLOTS_KEY = 'powerform.slots.v1';
 const CURRENT_SLOT_KEY = 'powerform.currentSlot.v1';
-export const MAX_SLOTS = 10;
+export const MAX_SLOTS = 20;
 
 // ---------------------------------------------------------------------------
 // Serialize / deserialize
