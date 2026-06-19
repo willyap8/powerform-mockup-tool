@@ -4,6 +4,7 @@ import {
   buildDemoForm, isHeadingType, getBlockRect, describeBlock,
   FIELD_LABEL_HEIGHT, FIELD_DEFAULTS, STICKY_DEFAULTS, uid,
   HEADING_DEFAULT_LABELS,
+  evaluateEnabled, describeRule, isScoreableField,
 } from './constants';
 import { useTweaks, TweaksPanel, TweakSection, TweakRadio } from './tweaks-panel';
 import { Block } from './blocks';
@@ -27,7 +28,12 @@ const SNAP_THRESHOLD = 6;
 function cloneForm(form) {
   return {
     title: form.title,
-    blocks: form.blocks.map((b) => ({ ...b, options: b.options ? [...b.options] : undefined })),
+    blocks: form.blocks.map((b) => ({
+      ...b,
+      options: b.options ? [...b.options] : undefined,
+      optionWeights: b.optionWeights ? [...b.optionWeights] : undefined,
+      enableWhen: b.enableWhen ? { ...b.enableWhen } : undefined,
+    })),
   };
 }
 
@@ -695,6 +701,8 @@ export default function App() {
 
   // JSON export object
   const exportForm = useMemo(() => {
+    const byId = {};
+    effectiveForm.blocks.forEach((b) => { byId[b.id] = b; });
     const formBlocks = [], stickyNotes = [];
     effectiveForm.blocks.forEach((b) => {
       if (b.type === 'sticky') {
@@ -702,6 +710,16 @@ export default function App() {
       } else {
         const out = { ...b };
         delete out.id;
+        if (out.enableWhen) {
+          // Replace the opaque internal source id with a human-readable summary.
+          const src = byId[out.enableWhen.sourceId];
+          out.conditionalLogic = describeRule(b, byId);
+          out.enableWhen = {
+            source: src ? ((src.label || '').trim() || describeBlock(src)) : '(deleted field)',
+            op: out.enableWhen.op,
+            value: out.enableWhen.value,
+          };
+        }
         formBlocks.push(out);
       }
     });
@@ -872,6 +890,7 @@ export default function App() {
       {selectedBlock && editLayoutOn && !isPreviewing && (
         <PropertiesPanel
           block={selectedBlock}
+          allFields={form.blocks.filter((b) => isScoreableField(b) && b.id !== selectedBlock.id)}
           historyCollapsed={!showHistoryPane}
           onLiveUpdate={(patch) => updateBlock(selectedBlock.id, patch)}
           onCommitDesc={(desc) => commitCurrent(desc)}
@@ -885,7 +904,7 @@ export default function App() {
 
       <ContextMenu menu={contextMenu} onAction={onContextAction} onClose={() => setContextMenu(null)} />
 
-      {showPrintOptions && <PrintOptionsDialog form={effectiveForm} displayName={lastSaveName || currentSlot || effectiveForm.title} onClose={() => setShowPrintOptions(false)} />}
+      {showPrintOptions && <PrintOptionsDialog form={effectiveForm} fieldValues={fieldValues} displayName={lastSaveName || currentSlot || effectiveForm.title} onClose={() => setShowPrintOptions(false)} />}
       {showStyleGuide   && <StyleGuideModal onClose={() => setShowStyleGuide(false)} />}
 
       {saveSlotOpen && (
@@ -973,6 +992,13 @@ function FormCanvas(props) {
   const canvasH = Math.max(maxBottom + 80, 700);
   const canvasW = 1000;
 
+  // Index blocks by id so conditional rules can resolve their source field.
+  const blocksById = useMemo(() => {
+    const map = {};
+    form.blocks.forEach((b) => { map[b.id] = b; });
+    return map;
+  }, [form.blocks]);
+
   return (
     <div style={{ minWidth: canvasW + 80, padding: '24px 40px 60px' }}>
       <div
@@ -1005,6 +1031,8 @@ function FormCanvas(props) {
             editLayoutOn={editLayoutOn}
             editingLabel={editingId === b.id}
             fieldValue={fieldValues[b.id]}
+            conditionDisabled={!evaluateEnabled(b, blocksById, fieldValues)}
+            ruleText={b.enableWhen ? describeRule(b, blocksById) : ''}
             setFieldValue={(v) => setFieldValue(b.id, v)}
             onMouseDown={onBlockMouseDown}
             onClick={onBlockClick}

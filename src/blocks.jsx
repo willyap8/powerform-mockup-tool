@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, forwardRef } from 'react';
 import {
   SELECT_BLUE, BAR_STYLES, TEXT_STYLES, INPUT_FONT, FIELD_LABEL_HEIGHT,
-  NAVY, MANDATORY_BG, INPUT_BORDER, FIELD_DEFAULTS, STICKY_DEFAULTS,
+  NAVY, MANDATORY_BG, DISABLED_BG, DISABLED_TEXT, INPUT_BORDER,
+  FIELD_DEFAULTS, STICKY_DEFAULTS,
   isHeadingType, getBlockRect,
 } from './constants';
 
@@ -103,28 +104,30 @@ function FieldLabel({ text, editing, onCommit, onCancel, onDoubleClick }) {
   return <div style={style} onDoubleClick={onDoubleClick}>{text}</div>;
 }
 
-function FieldInput({ block, editLayoutOn, value, setValue, values, setValues }) {
+function FieldInput({ block, editLayoutOn, disabled, value, setValue, values, setValues }) {
   const ft = block.fieldType;
   const w = block.width || FIELD_DEFAULTS[ft].width;
   const h = block.height || FIELD_DEFAULTS[ft].height;
   const showMandatoryBg = block.mandatory && !value;
+  // `disabled` = conditional rule not yet satisfied → greyed and locked.
+  const locked = editLayoutOn || disabled;
 
   const baseStyle = {
     width: w, height: h,
     border: '1px solid ' + INPUT_BORDER,
-    background: showMandatoryBg ? MANDATORY_BG : '#ffffff',
-    color: NAVY,
+    background: disabled ? DISABLED_BG : (showMandatoryBg ? MANDATORY_BG : '#ffffff'),
+    color: disabled ? DISABLED_TEXT : NAVY,
     font: INPUT_FONT,
     padding: ft === 'textarea' ? '3px 4px' : '0 4px',
     boxSizing: 'border-box',
     outline: 'none',
-    pointerEvents: editLayoutOn ? 'none' : 'auto',
+    pointerEvents: locked ? 'none' : 'auto',
     resize: 'none',
   };
 
   if (ft === 'textarea') {
     return (
-      <textarea value={value || ''} onChange={(e) => setValue(e.target.value)}
+      <textarea value={value || ''} onChange={(e) => setValue(e.target.value)} disabled={disabled}
                 placeholder={block.placeholder || ''} style={baseStyle} />
     );
   }
@@ -140,8 +143,8 @@ function FieldInput({ block, editLayoutOn, value, setValue, values, setValues })
     const boxStyle = {
       width: w, height: h,
       border: '1px solid ' + INPUT_BORDER,
-      background: showMandatoryBg ? MANDATORY_BG : '#ffffff',
-      color: NAVY,
+      background: disabled ? DISABLED_BG : (showMandatoryBg ? MANDATORY_BG : '#ffffff'),
+      color: disabled ? DISABLED_TEXT : NAVY,
       font: INPUT_FONT,
       padding: '0 4px',
       boxSizing: 'border-box',
@@ -149,16 +152,16 @@ function FieldInput({ block, editLayoutOn, value, setValue, values, setValues })
       overflow: 'hidden',
     };
 
-    if (editLayoutOn) {
+    if (editLayoutOn || disabled) {
       return (
         <div style={{ ...boxStyle, pointerEvents: 'none', userSelect: 'none' }}>
           <span style={{
-            color: currentVal ? NAVY : '#7d8aa0',
+            color: disabled ? DISABLED_TEXT : (currentVal ? NAVY : '#7d8aa0'),
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
             {currentVal || placeholder}
           </span>
-          <span style={{ marginLeft: 6, color: NAVY, fontSize: 9, lineHeight: 1 }}>▾</span>
+          <span style={{ marginLeft: 6, color: disabled ? DISABLED_TEXT : NAVY, fontSize: 9, lineHeight: 1 }}>▾</span>
         </div>
       );
     }
@@ -211,13 +214,13 @@ function FieldInput({ block, editLayoutOn, value, setValue, values, setValues })
       boxSizing: 'border-box',
       padding: '2px 4px',
       border: editLayoutOn ? '1px dashed #c7d2e0' : '1px solid transparent',
-      background: '#ffffff',
+      background: disabled ? DISABLED_BG : '#ffffff',
       overflow: 'hidden',
       display: 'flex',
       flexWrap: 'wrap',
       alignContent: 'flex-start',
       gap: '4px 12px',
-      pointerEvents: editLayoutOn ? 'none' : 'auto',
+      pointerEvents: locked ? 'none' : 'auto',
     };
     return (
       <div style={groupStyle}>
@@ -226,9 +229,9 @@ function FieldInput({ block, editLayoutOn, value, setValue, values, setValues })
           return (
             <label key={i} style={{
               display: 'inline-flex', alignItems: 'center', gap: 4,
-              font: INPUT_FONT, color: NAVY, lineHeight: '16px',
+              font: INPUT_FONT, color: disabled ? DISABLED_TEXT : NAVY, lineHeight: '16px',
               whiteSpace: 'nowrap',
-              cursor: editLayoutOn ? 'inherit' : 'pointer',
+              cursor: locked ? 'inherit' : 'pointer',
             }}>
               {isRadio ? (
                 <span
@@ -275,10 +278,10 @@ function FieldInput({ block, editLayoutOn, value, setValue, values, setValues })
     );
   }
 
-  if (ft === 'date')   return <input type="date"   value={value || ''} onChange={(e) => setValue(e.target.value)} style={baseStyle} />;
-  if (ft === 'time')   return <input type="time"   value={value || ''} onChange={(e) => setValue(e.target.value)} style={baseStyle} />;
-  if (ft === 'number') return <input type="number" value={value || ''} onChange={(e) => setValue(e.target.value)} placeholder={block.placeholder || ''} style={baseStyle} />;
-  return <input type="text" value={value || ''} onChange={(e) => setValue(e.target.value)} placeholder={block.placeholder || ''} style={baseStyle} />;
+  if (ft === 'date')   return <input type="date"   value={value || ''} onChange={(e) => setValue(e.target.value)} disabled={disabled} style={baseStyle} />;
+  if (ft === 'time')   return <input type="time"   value={value || ''} onChange={(e) => setValue(e.target.value)} disabled={disabled} style={baseStyle} />;
+  if (ft === 'number') return <input type="number" value={value || ''} onChange={(e) => setValue(e.target.value)} disabled={disabled} placeholder={block.placeholder || ''} style={baseStyle} />;
+  return <input type="text" value={value || ''} onChange={(e) => setValue(e.target.value)} disabled={disabled} placeholder={block.placeholder || ''} style={baseStyle} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -287,6 +290,7 @@ function FieldInput({ block, editLayoutOn, value, setValue, values, setValues })
 export function Block(props) {
   const {
     block, selected, editLayoutOn, editingLabel, fieldValue,
+    conditionDisabled, ruleText,
     onMouseDown, onClick, onDoubleClickLabel,
     onCommitLabel, onCancelLabel, onContextMenu, setFieldValue,
     onResizeStart,
@@ -329,6 +333,7 @@ export function Block(props) {
           <FieldInput
             block={block}
             editLayoutOn={editLayoutOn}
+            disabled={conditionDisabled}
             value={isGroup ? undefined : fieldValue}
             setValue={isGroup ? undefined : setFieldValue}
             values={isGroup && Array.isArray(fieldValue) ? fieldValue : []}
@@ -347,7 +352,7 @@ export function Block(props) {
             onDoubleClick={onDoubleClickLabel}
           />
           <div style={{ position: 'relative' }}>
-            <FieldInput block={block} editLayoutOn={editLayoutOn} value={fieldValue} setValue={setFieldValue} />
+            <FieldInput block={block} editLayoutOn={editLayoutOn} disabled={conditionDisabled} value={fieldValue} setValue={setFieldValue} />
           </div>
         </div>
       );
@@ -409,6 +414,22 @@ export function Block(props) {
       }}
     >
       {inner}
+      {block.type === 'field' && block.enableWhen && (
+        <span
+          title={ruleText || 'Conditional logic'}
+          style={{
+            position: 'absolute',
+            left: -7, top: isNoLabelField ? -7 : FIELD_LABEL_HEIGHT - 7,
+            width: 14, height: 14,
+            borderRadius: '50%',
+            background: conditionDisabled ? '#9aa3af' : SELECT_BLUE,
+            color: '#fff',
+            fontSize: 9, lineHeight: '14px', textAlign: 'center',
+            boxShadow: '0 0 0 1px #fff',
+            zIndex: 6, pointerEvents: 'none', userSelect: 'none',
+          }}
+        >⚡</span>
+      )}
       {isResizable && (isWidthOnlyResize ? (
         <div
           onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); onResizeStart && onResizeStart(block, e); }}

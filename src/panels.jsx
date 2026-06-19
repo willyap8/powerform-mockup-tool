@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  NAVY, SELECT_BLUE, MANDATORY_BG, INPUT_BORDER, INPUT_FONT, FIELD_LABEL_HEIGHT,
+  NAVY, SELECT_BLUE, MANDATORY_BG, DISABLED_BG, DISABLED_TEXT, INPUT_BORDER, INPUT_FONT, FIELD_LABEL_HEIGHT,
   TEXT_STYLES, BAR_STYLES, FIELD_DEFAULTS, STICKY_DEFAULTS,
   isHeadingType, describeBlock,
+  OPERATORS, evaluateEnabled, describeRule, scoreOf,
 } from './constants';
 
 function formatTime(ts) {
@@ -164,7 +165,7 @@ function DeferredNumber({ value, onLive, onCommitDesc, style, ...rest }) {
 // ---------------------------------------------------------------------------
 // Properties panel
 // ---------------------------------------------------------------------------
-export function PropertiesPanel({ block, onLiveUpdate, onCommitDesc, onApplyAndCommit, onClose, historyCollapsed }) {
+export function PropertiesPanel({ block, allFields, onLiveUpdate, onCommitDesc, onApplyAndCommit, onClose, historyCollapsed }) {
   if (!block) return null;
   const right = historyCollapsed ? 36 : 298;
 
@@ -230,6 +231,23 @@ export function PropertiesPanel({ block, onLiveUpdate, onCommitDesc, onApplyAndC
               onCommitDesc={(v) => onCommitDesc("Edited label → '" + (v || '').trim() + "'")}
               style={inputSt}
             />
+          </Row>
+        )}
+
+        {/* Group name — reference only; not drawn on the form, used to identify
+            the field in the conditional-logic source picker. */}
+        {isField && isNoLabelField && (
+          <Row label="Name (reference only)">
+            <DeferredInput
+              value={block.label || ''}
+              onLive={(v) => onLiveUpdate({ label: v })}
+              onCommitDesc={(v) => onCommitDesc("Named field → '" + (v || '').trim() + "'")}
+              style={inputSt}
+              placeholder={'e.g. ' + (isCheckboxGroup ? 'Symptoms' : isRadioGroup ? 'Pain score' : 'Severity')}
+            />
+            <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2, lineHeight: 1.4 }}>
+              Not shown on the form. Helps identify this field when picking a conditional-logic source.
+            </div>
           </Row>
         )}
 
@@ -308,10 +326,11 @@ export function PropertiesPanel({ block, onLiveUpdate, onCommitDesc, onApplyAndC
 
         {/* Checkbox group options */}
         {isCheckboxGroup && (
-          <Row label="Checkboxes">
+          <Row label="Checkboxes (label + weighting)">
             <CheckboxOptionsEditor
               options={block.options || []}
-              onLive={(opts) => onLiveUpdate({ options: opts })}
+              weights={block.optionWeights || []}
+              onLive={(opts, weights) => onLiveUpdate({ options: opts, optionWeights: weights })}
               onCommitDesc={(desc) => onCommitDesc(desc)}
             />
           </Row>
@@ -319,11 +338,12 @@ export function PropertiesPanel({ block, onLiveUpdate, onCommitDesc, onApplyAndC
 
         {/* Radio group options */}
         {isRadioGroup && (
-          <Row label="Radio buttons">
+          <Row label="Radio buttons (label + weighting)">
             <RadioOptionsEditor
               options={block.options || []}
+              weights={block.optionWeights || []}
               selectedIndex={block.selectedIndex == null ? null : block.selectedIndex}
-              onLive={(opts, sel) => onLiveUpdate({ options: opts, selectedIndex: sel })}
+              onLive={(opts, sel, weights) => onLiveUpdate({ options: opts, selectedIndex: sel, optionWeights: weights })}
               onCommitDesc={(desc) => onCommitDesc(desc)}
             />
           </Row>
@@ -331,14 +351,26 @@ export function PropertiesPanel({ block, onLiveUpdate, onCommitDesc, onApplyAndC
 
         {/* Dropdown options */}
         {isDropdown && (
-          <Row label="Dropdown options">
+          <Row label="Dropdown options (label + weighting)">
             <DropdownOptionsEditor
               options={block.options || []}
+              weights={block.optionWeights || []}
               selectedIndex={block.selectedIndex == null ? null : block.selectedIndex}
-              onLive={(opts, sel) => onLiveUpdate({ options: opts, selectedIndex: sel })}
+              onLive={(opts, sel, weights) => onLiveUpdate({ options: opts, selectedIndex: sel, optionWeights: weights })}
               onCommitDesc={(desc) => onCommitDesc(desc)}
             />
           </Row>
+        )}
+
+        {/* Conditional logic */}
+        {isField && (
+          <ConditionalLogicEditor
+            block={block}
+            allFields={allFields || []}
+            onApplyAndCommit={onApplyAndCommit}
+            onLiveUpdate={onLiveUpdate}
+            onCommitDesc={onCommitDesc}
+          />
         )}
       </div>
     </div>
@@ -359,21 +391,43 @@ function DeferredNumberField({ value, onLive, onCommitDesc, suffix }) {
   );
 }
 
-function CheckboxOptionsEditor({ options, onLive, onCommitDesc }) {
+// Small numeric weight field shown beside each option label.
+function WeightInput({ value, onLive, onCommitDesc, title }) {
+  return (
+    <DeferredNumber
+      value={Number.isFinite(value) ? value : 0}
+      onLive={onLive}
+      onCommitDesc={onCommitDesc}
+      style={{ ...inputSt, width: 46, flex: '0 0 46px', padding: '4px 4px', textAlign: 'center' }}
+      title={title || 'Weighting'}
+    />
+  );
+}
+
+function CheckboxOptionsEditor({ options, weights, onLive, onCommitDesc }) {
+  const wAt = (i) => (Number.isFinite(weights[i]) ? weights[i] : 0);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
+      <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 2, lineHeight: 1.4 }}>
+        Each box has a weighting; ticked weightings are summed for conditional logic.
+      </div>
       {options.map((opt, i) => (
         <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <span style={{ width: 14, color: '#9ca3af', fontSize: 12, textAlign: 'center' }}>☐</span>
           <DeferredInput
             value={opt}
-            onLive={(v) => { const next = options.slice(); next[i] = v; onLive(next); }}
+            onLive={(v) => { const next = options.slice(); next[i] = v; onLive(next, weights.slice()); }}
             onCommitDesc={(v) => onCommitDesc("Edited checkbox label → '" + (v || '').trim() + "'")}
-            style={{ ...inputSt, flex: 1 }}
+            style={{ ...inputSt, flex: 1, minWidth: 0 }}
             placeholder={'Label ' + (i + 1)}
           />
+          <WeightInput
+            value={wAt(i)}
+            onLive={(v) => { const next = weights.slice(); next[i] = v; onLive(options.slice(), next); }}
+            onCommitDesc={() => onCommitDesc('Set checkbox weighting')}
+          />
           <button
-            onClick={() => { const next = options.slice(); next.splice(i, 1); onLive(next); onCommitDesc("Removed checkbox '" + opt + "'"); }}
+            onClick={() => { const o = options.slice(); o.splice(i, 1); const w = weights.slice(); w.splice(i, 1); onLive(o, w); onCommitDesc("Removed checkbox '" + opt + "'"); }}
             disabled={options.length <= 1}
             title="Remove"
             style={{ ...panelBtn(false), padding: '2px 6px', opacity: options.length <= 1 ? 0.4 : 1 }}
@@ -381,23 +435,24 @@ function CheckboxOptionsEditor({ options, onLive, onCommitDesc }) {
         </div>
       ))}
       <button
-        onClick={() => { const next = [...options, 'Option ' + (options.length + 1)]; onLive(next); onCommitDesc('Added checkbox'); }}
+        onClick={() => { onLive([...options, 'Option ' + (options.length + 1)], [...weights, 0]); onCommitDesc('Added checkbox'); }}
         style={{ ...panelBtn(false), marginTop: 2, fontSize: 11 }}
       >+ Add checkbox</button>
     </div>
   );
 }
 
-function RadioOptionsEditor({ options, selectedIndex, onLive, onCommitDesc }) {
+function RadioOptionsEditor({ options, weights, selectedIndex, onLive, onCommitDesc }) {
+  const wAt = (i) => (Number.isFinite(weights[i]) ? weights[i] : 0);
   const setSelected = (i) => {
     const next = selectedIndex === i ? null : i;
-    onLive(options.slice(), next);
+    onLive(options.slice(), next, weights.slice());
     onCommitDesc(next == null ? 'Cleared default radio' : "Set default radio → '" + (options[i] || '').trim() + "'");
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
       <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 2, lineHeight: 1.4 }}>
-        Tap a circle to set the pre-selected default. Only one radio can be selected at a time.
+        Tap a circle to set the pre-selected default. The weighting feeds conditional logic.
       </div>
       {options.map((opt, i) => {
         const isSel = selectedIndex === i;
@@ -417,18 +472,24 @@ function RadioOptionsEditor({ options, selectedIndex, onLive, onCommitDesc }) {
             </button>
             <DeferredInput
               value={opt}
-              onLive={(v) => { const next = options.slice(); next[i] = v; onLive(next, selectedIndex); }}
+              onLive={(v) => { const next = options.slice(); next[i] = v; onLive(next, selectedIndex, weights.slice()); }}
               onCommitDesc={(v) => onCommitDesc("Edited radio label → '" + (v || '').trim() + "'")}
-              style={{ ...inputSt, flex: 1 }}
+              style={{ ...inputSt, flex: 1, minWidth: 0 }}
               placeholder={'Label ' + (i + 1)}
+            />
+            <WeightInput
+              value={wAt(i)}
+              onLive={(v) => { const next = weights.slice(); next[i] = v; onLive(options.slice(), selectedIndex, next); }}
+              onCommitDesc={() => onCommitDesc('Set radio weighting')}
             />
             <button
               onClick={() => {
-                const next = options.slice(); next.splice(i, 1);
+                const o = options.slice(); o.splice(i, 1);
+                const w = weights.slice(); w.splice(i, 1);
                 let nextSel = selectedIndex;
                 if (selectedIndex === i) nextSel = null;
                 else if (selectedIndex != null && selectedIndex > i) nextSel = selectedIndex - 1;
-                onLive(next, nextSel);
+                onLive(o, nextSel, w);
                 onCommitDesc("Removed radio '" + opt + "'");
               }}
               disabled={options.length <= 1}
@@ -439,23 +500,24 @@ function RadioOptionsEditor({ options, selectedIndex, onLive, onCommitDesc }) {
         );
       })}
       <button
-        onClick={() => { const next = [...options, 'Option ' + (options.length + 1)]; onLive(next, selectedIndex); onCommitDesc('Added radio'); }}
+        onClick={() => { onLive([...options, 'Option ' + (options.length + 1)], selectedIndex, [...weights, 0]); onCommitDesc('Added radio'); }}
         style={{ ...panelBtn(false), marginTop: 2, fontSize: 11 }}
       >+ Add radio</button>
     </div>
   );
 }
 
-function DropdownOptionsEditor({ options, selectedIndex, onLive, onCommitDesc }) {
+function DropdownOptionsEditor({ options, weights, selectedIndex, onLive, onCommitDesc }) {
+  const wAt = (i) => (Number.isFinite(weights[i]) ? weights[i] : 0);
   const setSelected = (i) => {
     const next = selectedIndex === i ? null : i;
-    onLive(options.slice(), next);
+    onLive(options.slice(), next, weights.slice());
     onCommitDesc(next == null ? 'Cleared default dropdown option' : "Set default dropdown option → '" + (options[i] || '').trim() + "'");
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
       <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 2, lineHeight: 1.4 }}>
-        Tap a circle to set the pre-selected default. Shows in the dropdown box instead of the placeholder.
+        Tap a circle to set the default. The weighting feeds conditional logic.
       </div>
       {options.map((opt, i) => {
         const isSel = selectedIndex === i;
@@ -475,18 +537,24 @@ function DropdownOptionsEditor({ options, selectedIndex, onLive, onCommitDesc })
             </button>
             <DeferredInput
               value={opt}
-              onLive={(v) => { const next = options.slice(); next[i] = v; onLive(next, selectedIndex); }}
+              onLive={(v) => { const next = options.slice(); next[i] = v; onLive(next, selectedIndex, weights.slice()); }}
               onCommitDesc={(v) => onCommitDesc("Edited dropdown option → '" + (v || '').trim() + "'")}
-              style={{ ...inputSt, flex: 1 }}
+              style={{ ...inputSt, flex: 1, minWidth: 0 }}
               placeholder={'Option ' + (i + 1)}
+            />
+            <WeightInput
+              value={wAt(i)}
+              onLive={(v) => { const next = weights.slice(); next[i] = v; onLive(options.slice(), selectedIndex, next); }}
+              onCommitDesc={() => onCommitDesc('Set dropdown weighting')}
             />
             <button
               onClick={() => {
-                const next = options.slice(); next.splice(i, 1);
+                const o = options.slice(); o.splice(i, 1);
+                const w = weights.slice(); w.splice(i, 1);
                 let nextSel = selectedIndex;
                 if (selectedIndex === i) nextSel = null;
                 else if (selectedIndex != null && selectedIndex > i) nextSel = selectedIndex - 1;
-                onLive(next, nextSel);
+                onLive(o, nextSel, w);
                 onCommitDesc("Removed dropdown option '" + opt + "'");
               }}
               disabled={options.length <= 1}
@@ -497,11 +565,90 @@ function DropdownOptionsEditor({ options, selectedIndex, onLive, onCommitDesc })
         );
       })}
       <button
-        onClick={() => { const next = [...options, 'Option ' + (options.length + 1)]; onLive(next, selectedIndex); onCommitDesc('Added dropdown option'); }}
+        onClick={() => { onLive([...options, 'Option ' + (options.length + 1)], selectedIndex, [...weights, 0]); onCommitDesc('Added dropdown option'); }}
         style={{ ...panelBtn(false), marginTop: 2, fontSize: 11 }}
       >+ Add option</button>
     </div>
   );
+}
+
+// Conditional-logic editor — "only editable when <source> <op> <value>".
+function ConditionalLogicEditor({ block, allFields, onApplyAndCommit, onLiveUpdate, onCommitDesc }) {
+  const rule = block.enableWhen || null;
+  const enabled = !!rule;
+
+  const toggle = (on) => {
+    if (on) {
+      const first = allFields[0];
+      onApplyAndCommit(
+        { enableWhen: { sourceId: first ? first.id : '', op: 'ge', value: 0 } },
+        'Added conditional logic',
+      );
+    } else {
+      onApplyAndCommit({ enableWhen: undefined }, 'Removed conditional logic');
+    }
+  };
+
+  return (
+    <div style={{ borderTop: '1px solid #ececef', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151' }}>
+        <input type="checkbox" checked={enabled} onChange={(e) => toggle(e.target.checked)} />
+        Only editable when a condition is met
+      </label>
+
+      {enabled && (
+        allFields.length === 0 ? (
+          <div style={{ fontSize: 10, color: '#b45309', lineHeight: 1.4 }}>
+            No source fields available. Add a number, radio, checkbox, or dropdown field (with weightings) to drive this condition.
+          </div>
+        ) : (
+          <>
+            <Row label="Source field">
+              <select
+                value={rule.sourceId || ''}
+                onChange={(e) => onApplyAndCommit({ enableWhen: { ...rule, sourceId: e.target.value } }, 'Set condition source')}
+                style={inputSt}
+              >
+                <option value="" disabled>Choose a field…</option>
+                {allFields.map((f) => (
+                  <option key={f.id} value={f.id}>{describeBlock(f)}</option>
+                ))}
+              </select>
+            </Row>
+            <Row label="Operator">
+              <select
+                value={rule.op || 'ge'}
+                onChange={(e) => onApplyAndCommit({ enableWhen: { ...rule, op: e.target.value } }, 'Set condition operator')}
+                style={inputSt}
+              >
+                {Object.keys(OPERATORS).map((k) => (
+                  <option key={k} value={k}>{OPERATORS[k].label}</option>
+                ))}
+              </select>
+            </Row>
+            <Row label="Value (threshold)">
+              <DeferredNumber
+                value={Number.isFinite(rule.value) ? rule.value : 0}
+                onLive={(v) => onLiveUpdate({ enableWhen: { ...rule, value: v } })}
+                onCommitDesc={() => onCommitDesc('Set condition value')}
+                style={inputSt}
+              />
+            </Row>
+            <div style={{ fontSize: 10, color: '#6b7280', lineHeight: 1.4 }}>
+              {describeRule(block, indexFields(allFields))}
+            </div>
+          </>
+        )
+      )}
+    </div>
+  );
+}
+
+// describeRule needs a blocksById map; the source list is enough to build one.
+function indexFields(fields) {
+  const map = {};
+  fields.forEach((f) => { map[f.id] = f; });
+  return map;
 }
 
 function Row({ label, children }) {
@@ -569,9 +716,12 @@ export function ContextMenu({ menu, onAction, onClose }) {
 // ---------------------------------------------------------------------------
 // openPrintWindow — opens a new tab with the form rendered as static HTML
 // ---------------------------------------------------------------------------
-export function openPrintWindow(form, options, displayName) {
+export function openPrintWindow(form, options, displayName, fieldValues) {
   const includeNotes = !!(options && options.includeNotes);
+  const values = fieldValues || {};
   const headerName = (displayName || form.title || 'PowerForm').toString().trim() || 'PowerForm';
+  const blocksById = {};
+  form.blocks.forEach((b) => { blocksById[b.id] = b; });
   const w = window.open('', '_blank', 'width=1024,height=900,scrollbars=yes');
   if (!w) {
     alert('Pop-up blocked. Please allow pop-ups for this site to use Print Preview.');
@@ -624,7 +774,15 @@ export function openPrintWindow(form, options, displayName) {
       const ft = b.fieldType;
       const fw = b.width  || FIELD_DEFAULTS[ft].width;
       const fh = b.height || FIELD_DEFAULTS[ft].height;
-      const inputBg = b.mandatory ? MANDATORY_BG : '#fff';
+      const disabled = !evaluateEnabled(b, blocksById, values);
+      const fieldColor = disabled ? DISABLED_TEXT : NAVY;
+      const inputBg = disabled ? DISABLED_BG : (b.mandatory ? MANDATORY_BG : '#fff');
+      const wts = b.optionWeights || [];
+      const wsfx = (i) => (Number.isFinite(wts[i]) && wts[i] !== 0) ? ` (${wts[i]})` : '';
+      // Annotation under fields that carry a conditional rule.
+      const annot = b.enableWhen
+        ? `<div style="position:absolute;left:${r.x}px;top:${r.y + r.h + 1}px;font:italic 8px Tahoma,sans-serif;color:#6b7280;white-space:nowrap;">⚡ ${esc(describeRule(b, blocksById))}</div>`
+        : '';
 
       if (ft === 'dropdown') {
         const opts = b.options && b.options.length ? b.options : [''];
@@ -632,27 +790,28 @@ export function openPrintWindow(form, options, displayName) {
         const defVal = defIdx != null && opts[defIdx] != null ? opts[defIdx] : '';
         const placeholder = b.placeholder || 'Select…';
         const showVal = defVal || placeholder;
-        const valColor = defVal ? NAVY : '#7d8aa0';
-        const bg = b.mandatory && !defVal ? MANDATORY_BG : '#fff';
-        return `<div style="${pos}width:${fw}px;height:${fh}px;box-sizing:border-box;border:1px solid ${INPUT_BORDER};background:${bg};font:${INPUT_FONT};color:${NAVY};padding:0 4px;display:flex;align-items:center;justify-content:space-between;overflow:hidden;"><span style="color:${valColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(showVal)}</span><span style="margin-left:6px;color:${NAVY};font-size:9px;line-height:1;">▾</span></div>`;
+        const valColor = disabled ? DISABLED_TEXT : (defVal ? NAVY : '#7d8aa0');
+        const bg = disabled ? DISABLED_BG : (b.mandatory && !defVal ? MANDATORY_BG : '#fff');
+        return `<div style="${pos}width:${fw}px;height:${fh}px;box-sizing:border-box;border:1px solid ${INPUT_BORDER};background:${bg};font:${INPUT_FONT};color:${fieldColor};padding:0 4px;display:flex;align-items:center;justify-content:space-between;overflow:hidden;"><span style="color:${valColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(showVal)}</span><span style="margin-left:6px;color:${fieldColor};font-size:9px;line-height:1;">▾</span></div>${annot}`;
       }
 
       if (ft === 'checkbox' || ft === 'radio') {
         const isRadio = ft === 'radio';
         const sel = b.selectedIndex == null ? null : b.selectedIndex;
         const opts = (b.options || ['']).map((label, i) => {
+          const lbl = esc(label) + wsfx(i);
           if (isRadio) {
             const isChecked = sel === i;
-            return `<span style="display:inline-flex;align-items:center;gap:4px;font:${INPUT_FONT};color:${NAVY};line-height:16px;white-space:nowrap;"><span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border-radius:50%;border:1px solid #555;background:#fff;box-sizing:border-box;">${isChecked ? `<span style="display:block;width:5px;height:5px;border-radius:50%;background:${NAVY};"></span>` : ''}</span><span>${esc(label)}</span></span>`;
+            return `<span style="display:inline-flex;align-items:center;gap:4px;font:${INPUT_FONT};color:${fieldColor};line-height:16px;white-space:nowrap;"><span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border-radius:50%;border:1px solid #555;background:#fff;box-sizing:border-box;">${isChecked ? `<span style="display:block;width:5px;height:5px;border-radius:50%;background:${NAVY};"></span>` : ''}</span><span>${lbl}</span></span>`;
           }
-          return `<span style="display:inline-flex;align-items:center;gap:4px;font:${INPUT_FONT};color:${NAVY};line-height:16px;white-space:nowrap;"><span style="display:inline-block;width:10px;height:10px;border:1px solid #555;background:#fff;"></span><span>${esc(label)}</span></span>`;
+          return `<span style="display:inline-flex;align-items:center;gap:4px;font:${INPUT_FONT};color:${fieldColor};line-height:16px;white-space:nowrap;"><span style="display:inline-block;width:10px;height:10px;border:1px solid #555;background:#fff;"></span><span>${lbl}</span></span>`;
         }).join('');
-        return `<div style="${pos}width:${fw}px;height:${fh}px;box-sizing:border-box;padding:2px 4px;background:#fff;border:1px solid transparent;display:flex;flex-wrap:wrap;align-content:flex-start;gap:4px 12px;overflow:hidden;">${opts}</div>`;
+        return `<div style="${pos}width:${fw}px;height:${fh}px;box-sizing:border-box;padding:2px 4px;background:${disabled ? DISABLED_BG : '#fff'};border:1px solid transparent;display:flex;flex-wrap:wrap;align-content:flex-start;gap:4px 12px;overflow:hidden;">${opts}</div>${annot}`;
       }
 
-      const labelHtml = `<div style="font:${TEXT_STYLES.label.font};color:${TEXT_STYLES.label.color};height:${FIELD_LABEL_HEIGHT}px;line-height:${FIELD_LABEL_HEIGHT}px;white-space:nowrap;">${esc(b.label)}</div>`;
-      const inputBoxStyle = `width:${fw}px;height:${fh}px;border:1px solid ${INPUT_BORDER};background:${inputBg};font:${INPUT_FONT};color:${NAVY};padding:${ft === 'textarea' ? '3px 4px' : '0 4px'};box-sizing:border-box;`;
-      return `<div style="${pos}">${labelHtml}<div style="${inputBoxStyle}"></div></div>`;
+      const labelHtml = `<div style="font:${TEXT_STYLES.label.font};color:${disabled ? DISABLED_TEXT : TEXT_STYLES.label.color};height:${FIELD_LABEL_HEIGHT}px;line-height:${FIELD_LABEL_HEIGHT}px;white-space:nowrap;">${esc(b.label)}</div>`;
+      const inputBoxStyle = `width:${fw}px;height:${fh}px;border:1px solid ${INPUT_BORDER};background:${inputBg};font:${INPUT_FONT};color:${fieldColor};padding:${ft === 'textarea' ? '3px 4px' : '0 4px'};box-sizing:border-box;`;
+      return `<div style="${pos}">${labelHtml}<div style="${inputBoxStyle}"></div></div>${annot}`;
     }
     if (b.type === 'sticky') {
       if (!includeNotes) return '';
@@ -707,7 +866,7 @@ export function openPrintWindow(form, options, displayName) {
 // ---------------------------------------------------------------------------
 // PrintOptionsDialog
 // ---------------------------------------------------------------------------
-export function PrintOptionsDialog({ form, displayName, onClose }) {
+export function PrintOptionsDialog({ form, fieldValues, displayName, onClose }) {
   const [includeNotes, setIncludeNotes] = useState(false);
   const hasNotes = form.blocks.some((b) => b.type === 'sticky');
   return (
@@ -745,7 +904,7 @@ export function PrintOptionsDialog({ form, displayName, onClose }) {
         <div style={{ padding: '12px 18px', background: '#fafafa', borderTop: '1px solid #ececef', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <button onClick={onClose} style={panelBtn(false)}>Cancel</button>
           <button
-            onClick={() => { openPrintWindow(form, { includeNotes }, displayName); onClose(); }}
+            onClick={() => { openPrintWindow(form, { includeNotes }, displayName, fieldValues); onClose(); }}
             style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600, background: 'rgb(0, 48, 135)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}
           >Open Print View</button>
         </div>

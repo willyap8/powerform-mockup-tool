@@ -4,6 +4,8 @@
 export const NAVY = '#000080';
 export const INSTR_BLUE = '#0000FF';
 export const MANDATORY_BG = '#FFFF99';
+export const DISABLED_BG = '#eef1f4';
+export const DISABLED_TEXT = '#9aa3af';
 export const INPUT_BORDER = '#7F9DB9';
 export const SELECT_BLUE = '#2568D4';
 export const GUIDE_PINK = '#FF1493';
@@ -71,9 +73,9 @@ export const FIELD_DEFAULTS = {
   number:   { width: 110, height: 22, label: 'Number' },
   date:     { width: 110, height: 22, label: 'Date' },
   time:     { width: 90,  height: 22, label: 'Time' },
-  checkbox: { width: 220, height: 22, label: '', options: ['Option 1'] },
-  radio:    { width: 220, height: 22, label: '', options: ['Option 1'], selectedIndex: null },
-  dropdown: { width: 180, height: 22, label: '', options: ['Option 1'], selectedIndex: null, placeholder: 'Select…' },
+  checkbox: { width: 220, height: 22, label: '', options: ['Option 1'], optionWeights: [0] },
+  radio:    { width: 220, height: 22, label: '', options: ['Option 1'], optionWeights: [0], selectedIndex: null },
+  dropdown: { width: 180, height: 22, label: '', options: ['Option 1'], optionWeights: [0], selectedIndex: null, placeholder: 'Select…' },
   textarea: { width: 400, height: 90, label: 'Notes' },
 };
 
@@ -166,3 +168,94 @@ export const STICKY_DEFAULTS = {
   text: '',
   placeholder: 'Note to configuration team…',
 };
+
+// ---------------------------------------------------------------------------
+// Conditional logic (Millennium-style conditional activation)
+//
+// A field can carry an `enableWhen` rule:
+//   { sourceId, op, value }
+// The source field produces a numeric "score" (scoreOf). When that score
+// satisfies the operator against `value`, the target field is editable;
+// otherwise it is greyed out and locked.
+//
+// Option-bearing fields (radio/checkbox/dropdown) carry a parallel
+// `optionWeights` array aligned by index with `options` (missing → 0).
+// ---------------------------------------------------------------------------
+
+// Field types that can act as a conditional-logic source (produce a score).
+export function isScoreableField(block) {
+  return block && block.type === 'field'
+    && ['number', 'radio', 'checkbox', 'dropdown'].includes(block.fieldType);
+}
+
+// Ordered operator map — keys mirror the six Millennium operators.
+export const OPERATORS = {
+  eq: { symbol: '=',  label: 'Exactly equal (=)',          test: (a, b) => a === b },
+  ne: { symbol: '≠',  label: 'Not equal to (≠)',           test: (a, b) => a !== b },
+  lt: { symbol: '<',  label: 'Less than (<)',              test: (a, b) => a <  b },
+  gt: { symbol: '>',  label: 'Greater than (>)',           test: (a, b) => a >  b },
+  le: { symbol: '≤',  label: 'Less than or equal (≤)',     test: (a, b) => a <= b },
+  ge: { symbol: '≥',  label: 'Greater than or equal (≥)',  test: (a, b) => a >= b },
+};
+
+// Weight for a given option index (missing entries default to 0).
+function weightAt(block, i) {
+  const w = block.optionWeights && block.optionWeights[i];
+  return Number.isFinite(w) ? w : 0;
+}
+
+// Compute the numeric score a source field currently contributes, given the
+// live value held in fieldValues for that field.
+export function scoreOf(sourceBlock, value) {
+  if (!sourceBlock) return 0;
+  const ft = sourceBlock.fieldType;
+
+  if (ft === 'number') return Number(value) || 0;
+
+  if (ft === 'radio') {
+    // radio value is stored as [idx]; fall back to the default selectedIndex.
+    let idx = Array.isArray(value) && value.length ? value[0] : sourceBlock.selectedIndex;
+    if (idx == null) return 0;
+    return weightAt(sourceBlock, idx);
+  }
+
+  if (ft === 'checkbox') {
+    // value is an array of booleans — sum the weights of checked options.
+    const vals = Array.isArray(value) ? value : [];
+    return (sourceBlock.options || []).reduce((sum, _o, i) => sum + (vals[i] ? weightAt(sourceBlock, i) : 0), 0);
+  }
+
+  if (ft === 'dropdown') {
+    // value is the option text; fall back to the default selectedIndex.
+    const opts = sourceBlock.options || [];
+    let idx = value != null && value !== '' ? opts.indexOf(value) : sourceBlock.selectedIndex;
+    if (idx == null || idx < 0) return 0;
+    return weightAt(sourceBlock, idx);
+  }
+
+  return 0;
+}
+
+// Whether a block is currently editable given the live field values.
+// Fields without a rule are always enabled.
+export function evaluateEnabled(block, blocksById, fieldValues) {
+  const rule = block && block.enableWhen;
+  if (!rule || !rule.sourceId) return true;
+  const source = blocksById[rule.sourceId];
+  if (!source) return true; // dangling reference (source deleted) → no gate
+  const op = OPERATORS[rule.op];
+  if (!op) return true;
+  const score = scoreOf(source, fieldValues[rule.sourceId]);
+  return op.test(score, Number(rule.value) || 0);
+}
+
+// Human-readable summary of a rule, e.g. "Editable when ‘Pain score’ ≥ 3".
+export function describeRule(block, blocksById) {
+  const rule = block && block.enableWhen;
+  if (!rule || !rule.sourceId) return '';
+  const source = blocksById && blocksById[rule.sourceId];
+  const name = source ? (source.label || '').trim() || describeBlock(source) : '(deleted field)';
+  const op = OPERATORS[rule.op];
+  const sym = op ? op.symbol : '?';
+  return 'Editable when ‘' + name + '’ ' + sym + ' ' + (Number(rule.value) || 0);
+}
