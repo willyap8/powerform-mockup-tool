@@ -11,9 +11,19 @@ export const MAX_SLOTS = 20;
 // Serialize / deserialize
 // ---------------------------------------------------------------------------
 export function serializeDesign(form, notes) {
+  // Block ids are stripped on save and regenerated on load, so a conditional
+  // rule's `enableWhen.sourceId` (a block id) cannot survive verbatim. Translate
+  // it to a stable array index here; deserializeDesign rebuilds the id from it.
+  const idToIndex = {};
+  form.blocks.forEach((b, i) => { idToIndex[b.id] = i; });
   const blocks = form.blocks.map((b) => {
     const out = { ...b };
     delete out.id;
+    if (out.enableWhen && out.enableWhen.sourceId != null) {
+      const idx = idToIndex[out.enableWhen.sourceId];
+      const { sourceId, ...rest } = out.enableWhen;
+      out.enableWhen = { ...rest, sourceIndex: idx == null ? -1 : idx };
+    }
     return out;
   });
   return {
@@ -37,6 +47,15 @@ export function deserializeDesign(raw) {
   }
   if (!Array.isArray(raw.blocks)) throw new Error('File has no blocks.');
   const blocks = raw.blocks.map((b) => ({ ...b, id: uid(b.type || 'b') }));
+  // Second pass: rebuild conditional-rule source references now that every
+  // block has a fresh id. Drop rules whose source no longer exists.
+  blocks.forEach((b) => {
+    if (b.enableWhen && b.enableWhen.sourceIndex != null) {
+      const { sourceIndex, ...rest } = b.enableWhen;
+      const source = blocks[sourceIndex];
+      b.enableWhen = source ? { ...rest, sourceId: source.id } : undefined;
+    }
+  });
   return { title: raw.title || '', blocks, notes: typeof raw.notes === 'string' ? raw.notes : '' };
 }
 
