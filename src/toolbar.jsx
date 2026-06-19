@@ -14,6 +14,7 @@ const TOOL_GROUPS = [
     { key: 'field:dropdown', swatch: '#7F9DB9', name: 'Dropdown' },
   ]},
   { label: 'Headers', tools: [
+    { key: 'formHeading', swatch: 'rgb(0, 48, 135)', name: 'Form Heading' },
     { key: 'heading1',   swatch: 'rgb(255, 200, 69)', name: 'Heading 1' },
     { key: 'heading2',   swatch: 'rgb(237, 125, 49)', name: 'Heading 2' },
     { key: 'subSection', swatch: 'rgb(112, 173, 71)', name: 'Sub-Section' },
