@@ -78,6 +78,7 @@ export const FIELD_DEFAULTS = {
 };
 
 export const HEADING_DEFAULT_LABELS = {
+  formHeading: ' Form Heading',
   heading1:   ' Heading 1',
   heading2:   ' Heading 2',
   subSection: ' Sub-Section Heading',
