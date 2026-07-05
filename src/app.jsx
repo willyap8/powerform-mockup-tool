@@ -5,6 +5,7 @@ import {
   FIELD_LABEL_HEIGHT, FIELD_DEFAULTS, STICKY_DEFAULTS, uid,
   HEADING_DEFAULT_LABELS,
   evaluateEnabled, describeRule, isScoreableField,
+  cloneForm,
 } from './constants';
 import { useTweaks, TweaksPanel, TweakSection, TweakRadio } from './tweaks-panel';
 import { Block } from './blocks';
@@ -25,18 +26,6 @@ import {
 const MAX_HISTORY    = 50;
 const SNAP_THRESHOLD = 6;
 
-function cloneForm(form) {
-  return {
-    title: form.title,
-    blocks: form.blocks.map((b) => ({
-      ...b,
-      options: b.options ? [...b.options] : undefined,
-      optionWeights: b.optionWeights ? [...b.optionWeights] : undefined,
-      enableWhen: b.enableWhen ? { ...b.enableWhen } : undefined,
-    })),
-  };
-}
-
 function toolName(key) {
   if (key.startsWith('field:')) return 'Placing ' + key.split(':')[1] + ' field';
   if (key.startsWith('text:'))  return 'Placing text';
@@ -55,19 +44,26 @@ export default function App() {
     const slotName = getCurrentSlotName();
     const slot = slotName ? getSlot(slotName) : null;
     let initialForm = null, initialNotes = '', description = 'Initial demo form loaded';
+    let attachedSlot = null, loadFailed = false;
     if (slot) {
       try {
         const design = deserializeDesign(slot);
         initialForm = { title: design.title || ' Nursing Assessment', blocks: design.blocks };
         initialNotes = design.notes || '';
         description = "Restored '" + slotName + "' from browser";
+        attachedSlot = slotName;
       } catch (e) {
+        // Corrupt/truncated payload: load the demo but stay DETACHED from the
+        // slot, or the next quick-save would overwrite the recoverable data.
+        // The corrupt payload itself is left untouched in localStorage.
         initialForm = buildDemoForm();
+        description = "Could not read saved slot '" + slotName + "' — loaded demo form instead";
+        loadFailed = true;
       }
     } else {
       initialForm = buildDemoForm();
     }
-    initialStateRef.current = { form: initialForm, notes: initialNotes, description, slotName: slot ? slotName : null };
+    initialStateRef.current = { form: initialForm, notes: initialNotes, description, slotName: attachedSlot, loadFailed };
   }
   const [form, setForm]           = useState(() => initialStateRef.current.form);
   const [history, setHistory]     = useState(() => [
@@ -114,8 +110,10 @@ export default function App() {
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState(null);
   const [lastSaveName, setLastSaveName] = useState(() => initialStateRef.current.slotName || '');
 
-  // Active save slot
-  const [currentSlot, setCurrentSlot] = useState(() => getCurrentSlotName());
+  // Active save slot. Starts from the slot we actually attached to on load —
+  // null when the slot was missing or failed to deserialize, so a quick-save
+  // opens the Save-As modal instead of overwriting a broken/absent slot.
+  const [currentSlot, setCurrentSlot] = useState(() => initialStateRef.current.slotName);
 
   // Drag
   const [dragGuides, setDragGuides] = useState([]);
@@ -128,6 +126,14 @@ export default function App() {
   // formRef mirrors `form` for callbacks that close over stale state
   const formRef = useRef(form);
   useEffect(() => { formRef.current = form; }, [form]);
+
+  // If the active slot failed to deserialize on startup, clear the persisted
+  // current-slot pointer (done here, not during render, per React's rules).
+  // The corrupt slot payload is left intact so it can be recovered by hand.
+  useEffect(() => {
+    if (initialStateRef.current.loadFailed) setCurrentSlotName(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // -------------------------------------------------------------------------
   // History commit

@@ -169,6 +169,21 @@ export const STICKY_DEFAULTS = {
   placeholder: 'Note to configuration team…',
 };
 
+// Deep-clone a form for undo/history. Spreads each block, then copies the
+// mutable per-block arrays and the enableWhen rule so history entries never
+// share nested references (a shared array would let one entry corrupt another).
+export function cloneForm(form) {
+  return {
+    title: form.title,
+    blocks: form.blocks.map((b) => ({
+      ...b,
+      options: b.options ? [...b.options] : undefined,
+      optionWeights: b.optionWeights ? [...b.optionWeights] : undefined,
+      enableWhen: b.enableWhen ? { ...b.enableWhen } : undefined,
+    })),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Conditional logic (Millennium-style conditional activation)
 //
