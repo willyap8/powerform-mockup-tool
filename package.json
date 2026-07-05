@@ -8,7 +8,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "deploy": "vite build && gh-pages -d dist -b gh-pages -m \"Deploy latest build\""
+    "deploy": "vite build && node -e \"require('fs').writeFileSync('dist/.nojekyll','')\" && gh-pages -t -d dist -b gh-pages -m \"Deploy latest build\""
   },
   "dependencies": {
     "react": "^18.3.1",
