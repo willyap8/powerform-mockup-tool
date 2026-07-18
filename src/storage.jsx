@@ -153,43 +153,43 @@ export function getSlot(name) {
 // ---------------------------------------------------------------------------
 const modalBackdrop = {
   position: 'fixed', inset: 0, zIndex: 220,
-  background: 'rgba(15, 23, 42, 0.5)',
+  background: 'var(--ui-overlay)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   fontFamily: 'system-ui, -apple-system, "Segoe UI", Helvetica, sans-serif',
 };
 const modalCard = (w) => ({
   width: w, maxWidth: 'calc(100vw - 32px)',
-  background: '#fff', borderRadius: 10,
-  boxShadow: '0 24px 60px rgba(15,23,42,0.3)',
+  background: 'var(--ui-surface)', borderRadius: 10,
+  boxShadow: '0 24px 60px var(--ui-shadow)',
   overflow: 'hidden',
 });
 const modalHeader = {
   padding: '12px 18px',
-  borderBottom: '1px solid #ececef',
-  fontWeight: 600, fontSize: 14, color: '#111827',
+  borderBottom: '1px solid var(--ui-border-soft)',
+  fontWeight: 600, fontSize: 14, color: 'var(--ui-text)',
 };
 const modalFooter = {
-  padding: '12px 18px', background: '#fafafa', borderTop: '1px solid #ececef',
+  padding: '12px 18px', background: 'var(--ui-surface-subtle)', borderTop: '1px solid var(--ui-border-soft)',
   display: 'flex', justifyContent: 'flex-end', gap: 8,
 };
 const btnSecondary = {
   padding: '6px 14px', fontSize: 12, fontWeight: 500,
-  background: '#fff', color: '#374151',
-  border: '1px solid #d1d5db', borderRadius: 6, cursor: 'pointer',
+  background: 'var(--ui-surface)', color: 'var(--ui-text-secondary)',
+  border: '1px solid var(--ui-border-strong)', borderRadius: 6, cursor: 'pointer',
   fontFamily: 'inherit',
 };
 const btnPrimary = (enabled) => ({
   padding: '6px 14px', fontSize: 12, fontWeight: 600,
-  background: enabled ? 'rgb(0, 48, 135)' : '#9ca3af',
+  background: enabled ? 'rgb(0, 48, 135)' : 'var(--ui-text-faint)',
   color: '#fff', border: 'none',
   borderRadius: 6, cursor: enabled ? 'pointer' : 'not-allowed',
   fontFamily: 'inherit',
 });
 const chip = (active) => ({
   padding: '3px 8px', fontSize: 11,
-  background: active ? '#1f2937' : '#f3f4f6',
-  color: active ? '#fff' : '#374151',
-  border: '1px solid ' + (active ? '#1f2937' : '#e5e7eb'),
+  background: active ? 'var(--ui-active)' : 'var(--ui-surface-muted)',
+  color: active ? 'var(--ui-active-text)' : 'var(--ui-text-secondary)',
+  border: '1px solid ' + (active ? 'var(--ui-active)' : 'var(--ui-border)'),
   borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
 });
 
@@ -224,12 +224,12 @@ export function SaveSlotModal({ form, notes, initialName, onClose, onSaved }) {
     <div style={modalBackdrop} onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} style={modalCard(480)}>
         <div style={modalHeader}>Save to browser</div>
-        <div style={{ padding: '16px 18px', color: '#374151', fontSize: 13, lineHeight: 1.55 }}>
-          <p style={{ margin: '0 0 12px', fontSize: 12, color: '#6b7280' }}>
+        <div style={{ padding: '16px 18px', color: 'var(--ui-text-secondary)', fontSize: 13, lineHeight: 1.55 }}>
+          <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--ui-text-muted)' }}>
             Saved in this browser only ({slotNames.length}/{MAX_SLOTS} slots used).
             Cleared if you clear site data. To share with the configuration team, use <strong>Save to file…</strong> instead.
           </p>
-          <label style={{ display: 'block', fontWeight: 500, fontSize: 12, color: '#374151', marginBottom: 4 }}>Slot name</label>
+          <label style={{ display: 'block', fontWeight: 500, fontSize: 12, color: 'var(--ui-text-secondary)', marginBottom: 4 }}>Slot name</label>
           <input
             value={name}
             onChange={(e) => { setName(e.target.value); setConfirmOverwrite(false); }}
@@ -237,26 +237,26 @@ export function SaveSlotModal({ form, notes, initialName, onClose, onSaved }) {
             autoFocus
             style={{
               width: '100%', padding: '7px 9px', fontSize: 13,
-              border: '1px solid #d1d5db', borderRadius: 6,
+              border: '1px solid var(--ui-border-strong)', borderRadius: 6,
               boxSizing: 'border-box', fontFamily: 'inherit',
-              background: '#fff', color: '#111827',
+              background: 'var(--ui-surface)', color: 'var(--ui-text)',
             }}
             placeholder="e.g. Nursing Assessment v3"
           />
           {overwrites && (
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10, padding: 8, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, fontSize: 12, color: '#92400e' }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10, padding: 8, background: 'var(--ui-warning-bg)', border: '1px solid var(--ui-warning-border)', borderRadius: 6, fontSize: 12, color: 'var(--ui-warning-text)' }}>
               <input type="checkbox" checked={confirmOverwrite} onChange={(e) => setConfirmOverwrite(e.target.checked)} />
               <span>A slot named <strong>{trimmed}</strong> already exists. Overwrite it?</span>
             </label>
           )}
           {isAtCap && (
-            <div style={{ marginTop: 10, padding: 8, background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 6, fontSize: 12, color: '#991b1b' }}>
+            <div style={{ marginTop: 10, padding: 8, background: 'var(--ui-danger-bg)', border: '1px solid var(--ui-danger-border)', borderRadius: 6, fontSize: 12, color: 'var(--ui-danger-text)' }}>
               You've reached {MAX_SLOTS} saved slots. Delete one from <em>Open from browser…</em> to free space, or save as a file instead.
             </div>
           )}
           {slotNames.length > 0 && (
             <div style={{ marginTop: 14 }}>
-              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6, color: '#9ca3af', marginBottom: 6 }}>Existing slots</div>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6, color: 'var(--ui-text-faint)', marginBottom: 6 }}>Existing slots</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {slotNames.map((n) => (
                   <button key={n} onClick={() => setName(n)} style={chip(n === name)}>{n}</button>
@@ -289,14 +289,14 @@ export function OpenSlotModal({ onClose, onPick, dirty }) {
     <div style={modalBackdrop} onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} style={modalCard(520)}>
         <div style={modalHeader}>Open from browser</div>
-        <div style={{ padding: '14px 18px 6px', color: '#374151', fontSize: 13 }}>
+        <div style={{ padding: '14px 18px 6px', color: 'var(--ui-text-secondary)', fontSize: 13 }}>
           {dirty && (
-            <div style={{ marginBottom: 12, padding: 8, background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 6, fontSize: 12, color: '#92400e' }}>
+            <div style={{ marginBottom: 12, padding: 8, background: 'var(--ui-warning-bg)', border: '1px solid var(--ui-warning-border)', borderRadius: 6, fontSize: 12, color: 'var(--ui-warning-text)' }}>
               You have unsaved changes — opening another design will replace them.
             </div>
           )}
           {slotNames.length === 0 ? (
-            <div style={{ padding: '24px 0', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
+            <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ui-text-faint)', fontSize: 13 }}>
               No saved slots yet. Use <em>File → Save to browser…</em> to create one.
             </div>
           ) : (
@@ -310,18 +310,18 @@ export function OpenSlotModal({ onClose, onPick, dirty }) {
                   <div key={n} style={{
                     display: 'flex', alignItems: 'center', gap: 8,
                     padding: '8px 10px', margin: '2px 0',
-                    border: '1px solid #ececef', borderRadius: 6, background: '#fff',
+                    border: '1px solid var(--ui-border-soft)', borderRadius: 6, background: 'var(--ui-surface)',
                   }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n}</div>
-                      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--ui-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ui-text-muted)', marginTop: 2 }}>
                         {fieldCount} field{fieldCount !== 1 ? 's' : ''} · {stickyCount} note{stickyCount !== 1 ? 's' : ''}
                         {s && s.savedAt && <span> · saved {formatStamp(s.savedAt)}</span>}
                       </div>
                     </div>
                     {confirmDelete === n ? (
                       <>
-                        <span style={{ fontSize: 11, color: '#b91c1c' }}>Delete?</span>
+                        <span style={{ fontSize: 11, color: 'var(--ui-danger-text)' }}>Delete?</span>
                         <button onClick={() => remove(n)} style={{ ...btnSecondary, color: '#fff', background: '#dc2626', borderColor: '#dc2626' }}>Yes</button>
                         <button onClick={() => setConfirmDelete(null)} style={btnSecondary}>No</button>
                       </>
@@ -353,7 +353,7 @@ export function ConfirmDiscardModal({ message, confirmLabel, onCancel, onConfirm
     <div style={modalBackdrop} onClick={onCancel}>
       <div onClick={(e) => e.stopPropagation()} style={modalCard(420)}>
         <div style={modalHeader}>Unsaved changes</div>
-        <div style={{ padding: '16px 18px', color: '#374151', fontSize: 13, lineHeight: 1.55 }}>
+        <div style={{ padding: '16px 18px', color: 'var(--ui-text-secondary)', fontSize: 13, lineHeight: 1.55 }}>
           {message}
         </div>
         <div style={modalFooter}>
@@ -376,13 +376,13 @@ export function AutosaveIndicator({ slotName, dirty, onClickSave }) {
   let label, bg, border, color, dotColor;
   if (dirty) {
     label = 'Unsaved changes' + (slotName ? ' · ' + slotName : '');
-    bg = '#fef3c7'; border = '#fde68a'; color = '#92400e'; dotColor = '#f59e0b';
+    bg = 'var(--ui-warning-bg)'; border = 'var(--ui-warning-border)'; color = 'var(--ui-warning-text)'; dotColor = '#f59e0b';
   } else if (slotName) {
     label = 'Saved · ' + slotName;
-    bg = '#ecfdf5'; border = '#a7f3d0'; color = '#065f46'; dotColor = '#10b981';
+    bg = 'var(--ui-success-bg)'; border = 'var(--ui-success-border)'; color = 'var(--ui-success-text)'; dotColor = '#10b981';
   } else {
     label = 'Not yet saved';
-    bg = '#f9fafb'; border = '#e5e7eb'; color = '#6b7280'; dotColor = '#9ca3af';
+    bg = 'var(--ui-surface-subtle)'; border = 'var(--ui-border)'; color = 'var(--ui-text-muted)'; dotColor = 'var(--ui-text-faint)';
   }
 
   return (
@@ -406,8 +406,8 @@ export function AutosaveIndicator({ slotName, dirty, onClickSave }) {
           marginLeft: 4,
           width: 24, height: 22,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          background: '#fff', color: '#374151',
-          border: '1px solid #d1d5db', borderRadius: 6,
+          background: 'var(--ui-surface)', color: 'var(--ui-text-secondary)',
+          border: '1px solid var(--ui-border-strong)', borderRadius: 6,
           cursor: 'pointer', fontSize: 12, fontFamily: 'inherit',
         }}
       >💾</button>

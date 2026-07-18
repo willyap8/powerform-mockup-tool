@@ -31,14 +31,14 @@ export function HistoryPanel(props) {
         onClick={() => setCollapsed(false)}
         style={{
           position: 'fixed', right: 0, top: 96, bottom: 0, width: 28,
-          background: '#fff', borderLeft: '1px solid #e5e7eb',
+          background: 'var(--ui-surface)', borderLeft: '1px solid var(--ui-border)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', zIndex: 30,
           fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
         title="Open history"
       >
-        <div style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: 11, color: '#374151', letterSpacing: 0.5 }}>
+        <div style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: 11, color: 'var(--ui-text-secondary)', letterSpacing: 0.5 }}>
           ◂ History &nbsp;·&nbsp; {history.length} entr{history.length === 1 ? 'y' : 'ies'}
         </div>
       </div>
@@ -48,14 +48,14 @@ export function HistoryPanel(props) {
   return (
     <div style={{
       position: 'fixed', right: 0, top: 96, bottom: 0, width: 290,
-      background: '#fff', borderLeft: '1px solid #e5e7eb',
+      background: 'var(--ui-surface)', borderLeft: '1px solid var(--ui-border)',
       display: 'flex', flexDirection: 'column',
       zIndex: 30,
       fontFamily: 'system-ui, -apple-system, "Segoe UI", Helvetica, sans-serif',
     }}>
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid #ececef', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontWeight: 600, fontSize: 12, color: '#111827', letterSpacing: 0.2 }}>
-          Change history <span style={{ color: '#9ca3af', fontWeight: 500 }}>· {history.length}/50</span>
+      <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--ui-border-soft)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--ui-text)', letterSpacing: 0.2 }}>
+          Change history <span style={{ color: 'var(--ui-text-faint)', fontWeight: 500 }}>· {history.length}/50</span>
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
           <button onClick={() => setShowJson(!showJson)} style={panelBtn(showJson)}>{showJson ? 'Timeline' : 'JSON'}</button>
@@ -81,17 +81,17 @@ export function HistoryPanel(props) {
             return (
               <div key={i} style={{
                 padding: '8px 12px',
-                borderBottom: '1px solid #f1f1f3',
-                background: isPreviewing ? '#fef3c7' : (isCurrent ? '#eff6ff' : '#fff'),
+                borderBottom: '1px solid var(--ui-border-soft)',
+                background: isPreviewing ? 'var(--ui-warning-bg)' : (isCurrent ? 'var(--ui-info-bg)' : 'var(--ui-surface)'),
                 position: 'relative',
               }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: isCurrent ? '#1d4ed8' : '#374151' }}>
-                    #{i + 1} {isCurrent && <span style={{ marginLeft: 4, fontSize: 9, color: '#1d4ed8' }}>CURRENT</span>}
+                  <div style={{ fontSize: 11, fontWeight: 600, color: isCurrent ? '#60a5fa' : 'var(--ui-text-secondary)' }}>
+                    #{i + 1} {isCurrent && <span style={{ marginLeft: 4, fontSize: 9, color: '#60a5fa' }}>CURRENT</span>}
                   </div>
-                  <div style={{ font: '10px "Roboto Mono", Menlo, monospace', color: '#9ca3af' }}>{formatTime(h.ts)}</div>
+                  <div style={{ font: '10px "Roboto Mono", Menlo, monospace', color: 'var(--ui-text-faint)' }}>{formatTime(h.ts)}</div>
                 </div>
-                <div style={{ fontSize: 12, color: '#1f2937', marginTop: 2, lineHeight: 1.35 }}>{h.description}</div>
+                <div style={{ fontSize: 12, color: 'var(--ui-text)', marginTop: 2, lineHeight: 1.35 }}>{h.description}</div>
                 {!isCurrent && previewIndex === null && (
                   <button onClick={() => onPreview(i)} style={{ ...panelBtn(false), marginTop: 4, fontSize: 11 }}>
                     👁 Preview
@@ -114,9 +114,9 @@ export function HistoryPanel(props) {
 
 export function panelBtn(active) {
   return {
-    background: active ? '#1f2937' : '#fff',
-    color: active ? '#fff' : '#374151',
-    border: '1px solid ' + (active ? '#1f2937' : '#d1d5db'),
+    background: active ? 'var(--ui-active)' : 'var(--ui-surface)',
+    color: active ? 'var(--ui-active-text)' : 'var(--ui-text-secondary)',
+    border: '1px solid ' + (active ? 'var(--ui-active)' : 'var(--ui-border-strong)'),
     borderRadius: 6,
     padding: '3px 8px',
     fontSize: 11,
@@ -181,19 +181,19 @@ export function PropertiesPanel({ block, allFields, onLiveUpdate, onCommitDesc, 
   return (
     <div style={{
       position: 'fixed', right, top: 96, width: 260,
-      background: '#ffffff',
-      border: '1px solid #e5e7eb', borderRight: 'none',
+      background: 'var(--ui-surface)',
+      border: '1px solid var(--ui-border)', borderRight: 'none',
       borderRadius: '10px 0 0 10px',
-      boxShadow: '-6px 8px 24px rgba(15, 23, 42, 0.08)',
+      boxShadow: '-6px 8px 24px var(--ui-shadow-soft)',
       zIndex: 28,
       fontFamily: 'system-ui, -apple-system, sans-serif',
       maxHeight: 'calc(100vh - 120px)',
       overflow: 'auto',
     }}>
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid #ececef', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontWeight: 600, fontSize: 12, color: '#111827' }}>
+      <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--ui-border-soft)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--ui-text)' }}>
           Properties
-          <div style={{ fontWeight: 500, fontSize: 10, color: '#9ca3af', marginTop: 2 }}>{describeBlock(block)}</div>
+          <div style={{ fontWeight: 500, fontSize: 10, color: 'var(--ui-text-faint)', marginTop: 2 }}>{describeBlock(block)}</div>
         </div>
         <button onClick={onClose} style={panelBtn(false)} title="Deselect">✕</button>
       </div>
@@ -245,7 +245,7 @@ export function PropertiesPanel({ block, allFields, onLiveUpdate, onCommitDesc, 
               style={inputSt}
               placeholder={'e.g. ' + (isCheckboxGroup ? 'Symptoms' : isRadioGroup ? 'Pain score' : 'Severity')}
             />
-            <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2, lineHeight: 1.4 }}>
+            <div style={{ fontSize: 10, color: 'var(--ui-text-muted)', marginTop: 2, lineHeight: 1.4 }}>
               Not shown on the form. Helps identify this field when picking a conditional-logic source.
             </div>
           </Row>
@@ -313,7 +313,7 @@ export function PropertiesPanel({ block, allFields, onLiveUpdate, onCommitDesc, 
         {/* Mandatory */}
         {isField && !isGroupField && (
           <Row label="">
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ui-text-secondary)' }}>
               <input
                 type="checkbox"
                 checked={!!block.mandatory}
@@ -386,7 +386,7 @@ function DeferredNumberField({ value, onLive, onCommitDesc, suffix }) {
         onCommitDesc={onCommitDesc}
         style={{ ...inputSt, paddingRight: 22, width: '100%' }}
       />
-      <span style={{ position: 'absolute', right: 6, top: 5, fontSize: 10, color: '#9ca3af', font: '10px "Roboto Mono", Menlo, monospace' }}>{suffix}</span>
+      <span style={{ position: 'absolute', right: 6, top: 5, fontSize: 10, color: 'var(--ui-text-faint)', font: '10px "Roboto Mono", Menlo, monospace' }}>{suffix}</span>
     </div>
   );
 }
@@ -408,12 +408,12 @@ function CheckboxOptionsEditor({ options, weights, onLive, onCommitDesc }) {
   const wAt = (i) => (Number.isFinite(weights[i]) ? weights[i] : 0);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
-      <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 2, lineHeight: 1.4 }}>
+      <div style={{ fontSize: 10, color: 'var(--ui-text-muted)', marginBottom: 2, lineHeight: 1.4 }}>
         Each box has a weighting; ticked weightings are summed for conditional logic.
       </div>
       {options.map((opt, i) => (
         <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          <span style={{ width: 14, color: '#9ca3af', fontSize: 12, textAlign: 'center' }}>☐</span>
+          <span style={{ width: 14, color: 'var(--ui-text-faint)', fontSize: 12, textAlign: 'center' }}>☐</span>
           <DeferredInput
             value={opt}
             onLive={(v) => { const next = options.slice(); next[i] = v; onLive(next, weights.slice()); }}
@@ -451,7 +451,7 @@ function RadioOptionsEditor({ options, weights, selectedIndex, onLive, onCommitD
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
-      <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 2, lineHeight: 1.4 }}>
+      <div style={{ fontSize: 10, color: 'var(--ui-text-muted)', marginBottom: 2, lineHeight: 1.4 }}>
         Tap a circle to set the pre-selected default. The weighting feeds conditional logic.
       </div>
       {options.map((opt, i) => {
@@ -464,8 +464,8 @@ function RadioOptionsEditor({ options, weights, selectedIndex, onLive, onCommitD
               style={{
                 width: 16, height: 16, padding: 0,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                border: '1px solid ' + (isSel ? SELECT_BLUE : '#9ca3af'),
-                background: '#fff', borderRadius: '50%', cursor: 'pointer', flex: '0 0 16px',
+                border: '1px solid ' + (isSel ? SELECT_BLUE : 'var(--ui-text-faint)'),
+                background: 'var(--ui-surface)', borderRadius: '50%', cursor: 'pointer', flex: '0 0 16px',
               }}
             >
               {isSel && <span style={{ display: 'block', width: 8, height: 8, borderRadius: '50%', background: SELECT_BLUE }} />}
@@ -516,7 +516,7 @@ function DropdownOptionsEditor({ options, weights, selectedIndex, onLive, onComm
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
-      <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 2, lineHeight: 1.4 }}>
+      <div style={{ fontSize: 10, color: 'var(--ui-text-muted)', marginBottom: 2, lineHeight: 1.4 }}>
         Tap a circle to set the default. The weighting feeds conditional logic.
       </div>
       {options.map((opt, i) => {
@@ -529,8 +529,8 @@ function DropdownOptionsEditor({ options, weights, selectedIndex, onLive, onComm
               style={{
                 width: 16, height: 16, padding: 0,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                border: '1px solid ' + (isSel ? SELECT_BLUE : '#9ca3af'),
-                background: '#fff', borderRadius: '50%', cursor: 'pointer', flex: '0 0 16px',
+                border: '1px solid ' + (isSel ? SELECT_BLUE : 'var(--ui-text-faint)'),
+                background: 'var(--ui-surface)', borderRadius: '50%', cursor: 'pointer', flex: '0 0 16px',
               }}
             >
               {isSel && <span style={{ display: 'block', width: 8, height: 8, borderRadius: '50%', background: SELECT_BLUE }} />}
@@ -590,8 +590,8 @@ function ConditionalLogicEditor({ block, allFields, onApplyAndCommit, onLiveUpda
   };
 
   return (
-    <div style={{ borderTop: '1px solid #ececef', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151' }}>
+    <div style={{ borderTop: '1px solid var(--ui-border-soft)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ui-text-secondary)' }}>
         <input type="checkbox" checked={enabled} onChange={(e) => toggle(e.target.checked)} />
         Only editable when a condition is met
       </label>
@@ -634,7 +634,7 @@ function ConditionalLogicEditor({ block, allFields, onApplyAndCommit, onLiveUpda
                 style={inputSt}
               />
             </Row>
-            <div style={{ fontSize: 10, color: '#6b7280', lineHeight: 1.4 }}>
+            <div style={{ fontSize: 10, color: 'var(--ui-text-muted)', lineHeight: 1.4 }}>
               {describeRule(block, indexFields(allFields))}
             </div>
           </>
@@ -654,7 +654,7 @@ function indexFields(fields) {
 function Row({ label, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      {label && <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6, color: '#9ca3af' }}>{label}</div>}
+      {label && <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6, color: 'var(--ui-text-faint)' }}>{label}</div>}
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>{children}</div>
     </div>
   );
@@ -662,8 +662,8 @@ function Row({ label, children }) {
 
 const inputSt = {
   width: '100%', padding: '5px 7px',
-  border: '1px solid #d1d5db', borderRadius: 5,
-  fontSize: 12, background: '#fff', color: '#111827',
+  border: '1px solid var(--ui-border-strong)', borderRadius: 5,
+  fontSize: 12, background: 'var(--ui-surface)', color: 'var(--ui-text)',
   outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
 };
 
@@ -687,8 +687,8 @@ export function ContextMenu({ menu, onAction, onClose }) {
     <div
       style={{
         position: 'fixed', left: menu.x, top: menu.y,
-        background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6,
-        boxShadow: '0 6px 24px rgba(15, 23, 42, 0.15)',
+        background: 'var(--ui-surface)', border: '1px solid var(--ui-border)', borderRadius: 6,
+        boxShadow: '0 6px 24px var(--ui-shadow)',
         minWidth: 160, zIndex: 80, padding: 4,
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
@@ -702,8 +702,8 @@ export function ContextMenu({ menu, onAction, onClose }) {
         <div
           key={it.key}
           onClick={() => onAction(it.key)}
-          style={{ padding: '6px 10px', borderRadius: 4, fontSize: 12, color: it.danger ? '#b91c1c' : '#111827', cursor: 'pointer' }}
-          onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+          style={{ padding: '6px 10px', borderRadius: 4, fontSize: 12, color: it.danger ? '#ef4444' : 'var(--ui-text)', cursor: 'pointer' }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--ui-hover)'}
           onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
         >
           {it.label}
@@ -871,37 +871,37 @@ export function PrintOptionsDialog({ form, fieldValues, displayName, onClose }) 
   const hasNotes = form.blocks.some((b) => b.type === 'sticky');
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)',
+      position: 'fixed', inset: 0, background: 'var(--ui-overlay)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 200, fontFamily: 'system-ui, sans-serif',
     }} onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: 420, background: '#fff', borderRadius: 10,
-        boxShadow: '0 24px 60px rgba(15,23,42,0.3)', overflow: 'hidden',
+        width: 420, background: 'var(--ui-surface)', borderRadius: 10,
+        boxShadow: '0 24px 60px var(--ui-shadow)', overflow: 'hidden',
       }}>
-        <div style={{ padding: '14px 18px', borderBottom: '1px solid #ececef', fontWeight: 600, fontSize: 14, color: '#111827' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--ui-border-soft)', fontWeight: 600, fontSize: 14, color: 'var(--ui-text)' }}>
           Print Preview
         </div>
-        <div style={{ padding: '16px 18px', fontSize: 13, color: '#374151', lineHeight: 1.55 }}>
+        <div style={{ padding: '16px 18px', fontSize: 13, color: 'var(--ui-text-secondary)', lineHeight: 1.55 }}>
           <p style={{ margin: '0 0 14px' }}>Opens a new tab with the form rendered for printing or saving as PDF.</p>
           <label style={{
             display: 'flex', alignItems: 'flex-start', gap: 8,
             padding: 10, borderRadius: 6,
-            background: hasNotes ? '#fffbeb' : '#f9fafb',
-            border: '1px solid ' + (hasNotes ? '#fde68a' : '#e5e7eb'),
+            background: hasNotes ? 'var(--ui-warning-bg)' : 'var(--ui-surface-subtle)',
+            border: '1px solid ' + (hasNotes ? 'var(--ui-warning-border)' : 'var(--ui-border)'),
             cursor: hasNotes ? 'pointer' : 'not-allowed',
             opacity: hasNotes ? 1 : 0.6,
           }}>
             <input type="checkbox" checked={includeNotes} onChange={(e) => setIncludeNotes(e.target.checked)} disabled={!hasNotes} style={{ marginTop: 2 }} />
             <span>
               <strong style={{ display: 'block', marginBottom: 2 }}>Include sticky notes</strong>
-              <span style={{ fontSize: 12, color: '#6b7280' }}>
+              <span style={{ fontSize: 12, color: 'var(--ui-text-muted)' }}>
                 {hasNotes ? 'Show configuration notes on the printed form.' : 'No sticky notes in the current mockup.'}
               </span>
             </span>
           </label>
         </div>
-        <div style={{ padding: '12px 18px', background: '#fafafa', borderTop: '1px solid #ececef', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <div style={{ padding: '12px 18px', background: 'var(--ui-surface-subtle)', borderTop: '1px solid var(--ui-border-soft)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <button onClick={onClose} style={panelBtn(false)}>Cancel</button>
           <button
             onClick={() => { openPrintWindow(form, { includeNotes }, displayName, fieldValues); onClose(); }}
@@ -918,7 +918,7 @@ export function PrintOptionsDialog({ form, fieldValues, displayName, onClose }) 
 // ---------------------------------------------------------------------------
 const NOTES_CHAR_LIMIT = 32000;
 
-export function NotesPane({ committed, onSave, onClose }) {
+export function NotesPane({ committed, onSave, onClose, topOffset = 48 }) {
   const [draft, setDraft] = useState(committed || '');
   useEffect(() => { setDraft(committed || ''); }, [committed]);
 
@@ -945,19 +945,20 @@ export function NotesPane({ committed, onSave, onClose }) {
 
   return (
     <div style={{
-      position: 'fixed', left: 0, top: 96, bottom: 0, width: 320,
-      background: '#ffffff', borderRight: '1px solid #e5e7eb',
+      position: 'fixed', left: 0, top: topOffset, bottom: 0, width: 320,
+      background: 'var(--ui-surface)', borderRight: '1px solid var(--ui-border)',
       display: 'flex', flexDirection: 'column',
       zIndex: 32,
       fontFamily: 'system-ui, -apple-system, "Segoe UI", Helvetica, sans-serif',
-      boxShadow: '2px 0 12px rgba(15, 23, 42, 0.04)',
+      boxShadow: '2px 0 12px var(--ui-shadow-soft)',
+      transition: 'top 0.18s',
     }}>
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid #ececef', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--ui-border-soft)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ width: 22, height: 22, borderRadius: 5, background: '#fef3c7', color: '#92400e', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>📝</span>
           <div>
-            <div style={{ fontWeight: 600, fontSize: 12, color: '#111827', lineHeight: 1.2 }}>Notes</div>
-            <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 1 }}>Saved with this PowerForm</div>
+            <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--ui-text)', lineHeight: 1.2 }}>Notes</div>
+            <div style={{ fontSize: 10, color: 'var(--ui-text-faint)', marginTop: 1 }}>Saved with this PowerForm</div>
           </div>
         </div>
         <button onClick={onClose} title="Close (Tools → Show Notes pane to reopen)" style={panelBtn(false)}>✕</button>
@@ -972,8 +973,8 @@ export function NotesPane({ committed, onSave, onClose }) {
           style={{
             flex: 1, width: '100%',
             padding: '10px 12px',
-            border: '1px solid #e5e7eb', borderRadius: 6,
-            background: '#fafafa', color: '#111827',
+            border: '1px solid var(--ui-border)', borderRadius: 6,
+            background: 'var(--ui-surface-subtle)', color: 'var(--ui-text)',
             font: '12px/1.55 system-ui, -apple-system, "Segoe UI", Helvetica, sans-serif',
             outline: 'none', resize: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
           }}
@@ -981,12 +982,12 @@ export function NotesPane({ committed, onSave, onClose }) {
       </div>
 
       <div style={{
-        padding: '8px 12px 12px', borderTop: '1px solid #ececef', background: '#fafafa',
+        padding: '8px 12px 12px', borderTop: '1px solid var(--ui-border-soft)', background: 'var(--ui-surface-subtle)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
       }}>
         <div style={{
           font: '11px "Roboto Mono", "SF Mono", Menlo, monospace',
-          color: atLimit ? '#b91c1c' : (nearLimit ? '#b45309' : '#6b7280'),
+          color: atLimit ? '#ef4444' : (nearLimit ? '#f59e0b' : 'var(--ui-text-muted)'),
           fontWeight: atLimit ? 600 : 400,
         }}>
           {count.toLocaleString()} / {NOTES_CHAR_LIMIT.toLocaleString()}
@@ -999,8 +1000,8 @@ export function NotesPane({ committed, onSave, onClose }) {
           style={{
             position: 'relative',
             padding: '6px 14px', fontSize: 12, fontWeight: 600,
-            background: dirty ? 'rgb(0, 48, 135)' : '#e5e7eb',
-            color: dirty ? '#fff' : '#9ca3af',
+            background: dirty ? 'rgb(0, 48, 135)' : 'var(--ui-border)',
+            color: dirty ? '#fff' : 'var(--ui-text-faint)',
             border: 'none', borderRadius: 6,
             cursor: dirty ? 'pointer' : 'not-allowed',
             fontFamily: 'inherit',

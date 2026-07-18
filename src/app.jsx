@@ -11,6 +11,7 @@ import { useTweaks, TweaksPanel, TweakSection, TweakRadio } from './tweaks-panel
 import { Block } from './blocks';
 import { FloatingToolbar } from './toolbar';
 import { MenuBar, StyleGuideModal } from './menus';
+import { ThemeToggle, useAppTheme } from './theme';
 import {
   serializeDesign, deserializeDesign,
   downloadDesignFile, openDesignFile,
@@ -36,6 +37,7 @@ function toolName(key) {
 // App
 // ---------------------------------------------------------------------------
 export default function App() {
+  const { preference: themePreference, resolvedTheme, setPreference: setThemePreference, themeTokens } = useAppTheme();
   const [tweaks, setTweak] = useTweaks({ gridSnap: 'off' });
   const gridStep = tweaks.gridSnap === '5px' ? 5 : tweaks.gridSnap === '10px' ? 10 : 0;
 
@@ -736,18 +738,21 @@ export default function App() {
   // Render
   // -------------------------------------------------------------------------
   const selectedBlock = selectedIds.length === 1 ? effectiveForm.blocks.find((b) => b.id === selectedIds[0]) : null;
+  const contentTop = 48 + ((activeTool || isPreviewing) ? 34 : 0);
 
   return (
-    <div style={{
+    <div data-app-theme={resolvedTheme} style={{
+      ...themeTokens,
+      colorScheme: resolvedTheme,
       minHeight: '100vh',
-      background: '#f5f5f7',
+      background: 'var(--ui-bg)',
       fontFamily: 'system-ui, -apple-system, "Segoe UI", Helvetica, sans-serif',
-      color: '#111827',
+      color: 'var(--ui-text)',
       overflow: 'hidden',
     }}>
       {/* Top bar */}
       <div style={{
-        height: 48, background: '#fff', borderBottom: '1px solid #e5e7eb',
+        height: 48, background: 'var(--ui-surface)', borderBottom: '1px solid var(--ui-border)',
         display: 'flex', alignItems: 'center', padding: '0 16px', gap: 16,
         position: 'sticky', top: 0, zIndex: 40,
       }}>
@@ -762,9 +767,9 @@ export default function App() {
             PowerForm Mockup Tool
             {dirty && <span title="Unsaved changes" style={{ marginLeft: 6, color: '#dc2626', fontSize: 16, fontWeight: 700 }}>•</span>}
           </div>
-          <div style={{ fontSize: 11, color: '#9ca3af', marginLeft: 6 }}>v1.6 style guide</div>
+          <div style={{ fontSize: 11, color: 'var(--ui-text-faint)', marginLeft: 6 }}>v1.6 style guide</div>
         </div>
-        <div style={{ width: 1, height: 22, background: '#e5e7eb' }} />
+        <div style={{ width: 1, height: 22, background: 'var(--ui-border)' }} />
         <MenuBar
           onPrintPreview={() => setShowPrintOptions(true)}
           onResetAll={resetAll}
@@ -787,14 +792,15 @@ export default function App() {
           onClickSave={handleQuickSave}
         />
         <div style={{ flex: 1 }} />
+        <ThemeToggle value={themePreference} resolvedTheme={resolvedTheme} onChange={setThemePreference} />
         <button
           onClick={() => { if (!isPreviewing) setEditLayoutOn(!editLayoutOn); }}
           disabled={isPreviewing}
           style={{
             padding: '6px 12px', fontSize: 12, fontWeight: 500,
-            background: editLayoutOn ? '#ed7d31' : '#fff',
-            color: editLayoutOn ? '#fff' : '#374151',
-            border: '1px solid ' + (editLayoutOn ? '#ed7d31' : '#d1d5db'),
+            background: editLayoutOn ? '#ed7d31' : 'var(--ui-surface)',
+            color: editLayoutOn ? '#fff' : 'var(--ui-text-secondary)',
+            border: '1px solid ' + (editLayoutOn ? '#ed7d31' : 'var(--ui-border-strong)'),
             borderRadius: 6, cursor: isPreviewing ? 'not-allowed' : 'pointer',
             opacity: isPreviewing ? 0.5 : 1,
             fontFamily: 'inherit', whiteSpace: 'nowrap',
@@ -808,20 +814,20 @@ export default function App() {
       {activeTool && (
         <div style={{
           position: 'sticky', top: 48, zIndex: 35,
-          background: '#fef3c7', borderBottom: '1px solid #fcd34d',
-          padding: '8px 16px', fontSize: 12, color: '#92400e',
+          background: 'var(--ui-warning-bg)', borderBottom: '1px solid var(--ui-warning-border)',
+          padding: '8px 16px', fontSize: 12, color: 'var(--ui-warning-text)',
           display: 'flex', alignItems: 'center', gap: 10,
         }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b' }} />
           <strong>{toolName(activeTool)}</strong> — Click the form to place ·{' '}
-          <kbd style={{ font: '10px "Roboto Mono", Menlo, monospace', background: '#fff', border: '1px solid #fcd34d', borderRadius: 3, padding: '0 4px' }}>Esc</kbd> to cancel
+          <kbd style={{ font: '10px "Roboto Mono", Menlo, monospace', background: 'var(--ui-surface)', border: '1px solid var(--ui-warning-border)', borderRadius: 3, padding: '0 4px' }}>Esc</kbd> to cancel
         </div>
       )}
       {isPreviewing && (
         <div style={{
           position: 'sticky', top: 48, zIndex: 35,
-          background: '#fef3c7', borderBottom: '1px solid #fcd34d',
-          padding: '8px 16px', fontSize: 12, color: '#92400e',
+          background: 'var(--ui-warning-bg)', borderBottom: '1px solid var(--ui-warning-border)',
+          padding: '8px 16px', fontSize: 12, color: 'var(--ui-warning-text)',
           display: 'flex', alignItems: 'center', gap: 10,
         }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#d97706' }} />
@@ -832,12 +838,12 @@ export default function App() {
       {/* Scrollable form area */}
       <div style={{
         position: 'absolute',
-        top: 48 + ((activeTool || isPreviewing) ? 34 : 0),
+        top: contentTop,
         left: showNotesPane ? 320 : 0,
         right: showHistoryPane ? 290 : 0,
         bottom: 0,
         overflow: 'auto',
-        background: '#f5f5f7',
+        background: 'var(--ui-bg)',
         transition: 'left 0.18s, right 0.18s',
       }}>
         <FormCanvas
@@ -865,7 +871,12 @@ export default function App() {
       </div>
 
       {showNotesPane && (
-        <NotesPane committed={notes} onSave={(draft) => setNotes(draft)} onClose={() => setShowNotesPane(false)} />
+        <NotesPane
+          committed={notes}
+          onSave={(draft) => setNotes(draft)}
+          onClose={() => setShowNotesPane(false)}
+          topOffset={contentTop}
+        />
       )}
 
       {showElementsPane && (
@@ -1006,7 +1017,7 @@ function FormCanvas(props) {
   }, [form.blocks]);
 
   return (
-    <div style={{ minWidth: canvasW + 80, padding: '24px 40px 60px' }}>
+    <div style={{ minWidth: canvasW + 80, padding: '24px 40px 60px', colorScheme: 'light' }}>
       <div
         style={{
           position: 'relative',
@@ -1075,37 +1086,37 @@ function DisclaimerModal({ onAcknowledge }) {
       aria-modal="true"
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
-        background: 'rgba(15, 23, 42, 0.55)',
+        background: 'var(--ui-overlay)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontFamily: 'system-ui, -apple-system, "Segoe UI", Helvetica, sans-serif',
       }}
     >
       <div style={{
         width: 'min(520px, calc(100vw - 32px))',
-        background: '#ffffff', borderRadius: 12,
-        boxShadow: '0 24px 64px rgba(15, 23, 42, 0.35)',
+        background: 'var(--ui-surface)', borderRadius: 12,
+        boxShadow: '0 24px 64px var(--ui-shadow)',
         overflow: 'hidden',
       }}>
         <div style={{
-          padding: '14px 20px', borderBottom: '1px solid #ececef',
+          padding: '14px 20px', borderBottom: '1px solid var(--ui-border-soft)',
           background: 'linear-gradient(180deg, rgba(0,48,135,0.04), transparent)',
           display: 'flex', alignItems: 'center', gap: 10,
         }}>
-          <div style={{ width: 28, height: 28, borderRadius: 6, background: '#fef3c7', color: '#92400e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>⚠</div>
-          <div style={{ fontWeight: 600, fontSize: 15, color: '#111827' }}>Mockup tool — please read before continuing</div>
+          <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--ui-warning-bg)', color: 'var(--ui-warning-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>⚠</div>
+          <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--ui-text)' }}>Mockup tool — please read before continuing</div>
         </div>
-        <div style={{ padding: '18px 20px', color: '#1f2937', fontSize: 13, lineHeight: 1.55 }}>
+        <div style={{ padding: '18px 20px', color: 'var(--ui-text)', fontSize: 13, lineHeight: 1.55 }}>
           <p style={{ margin: '0 0 10px' }}>
             This tool is for <strong>mockup purposes only</strong>. Designs created here are intended to communicate intent to the configuration team — they are <strong>not</strong> the live EMR build.
           </p>
           <p style={{ margin: '0 0 10px' }}>
             The actual build delivered in the EMR may have <strong>visual or functional differences</strong> from what you design here, due to platform constraints, governance review, and clinical safety requirements.
           </p>
-          <p style={{ margin: 0, color: '#6b7280', fontSize: 12 }}>
+          <p style={{ margin: 0, color: 'var(--ui-text-muted)', fontSize: 12 }}>
             Use these mockups as a starting point for discussion with the PowerForm configuration team.
           </p>
         </div>
-        <div style={{ padding: '14px 20px', borderTop: '1px solid #ececef', display: 'flex', justifyContent: 'flex-end', background: '#fafafa' }}>
+        <div style={{ padding: '14px 20px', borderTop: '1px solid var(--ui-border-soft)', display: 'flex', justifyContent: 'flex-end', background: 'var(--ui-surface-subtle)' }}>
           <button
             ref={btnRef}
             onClick={onAcknowledge}

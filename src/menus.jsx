@@ -8,27 +8,27 @@ function MenuItem({ label, hint, checked, danger, onClick, disabled }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '6px 10px 6px 24px',
         fontSize: 12,
-        color: disabled ? '#9ca3af' : (danger ? '#b91c1c' : '#111827'),
+        color: disabled ? 'var(--ui-text-faint)' : (danger ? '#ef4444' : 'var(--ui-text)'),
         cursor: disabled ? 'not-allowed' : 'pointer',
         borderRadius: 4,
         position: 'relative',
         gap: 16,
         whiteSpace: 'nowrap',
       }}
-      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = '#f3f4f6'; }}
+      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = 'var(--ui-hover)'; }}
       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
     >
       {checked && (
-        <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#1d4ed8' }}>✓</span>
+        <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#3b82f6' }}>✓</span>
       )}
       <span>{label}</span>
-      {hint && <span style={{ fontSize: 10, color: '#9ca3af', font: '10px "Roboto Mono", Menlo, monospace' }}>{hint}</span>}
+      {hint && <span style={{ fontSize: 10, color: 'var(--ui-text-faint)', font: '10px "Roboto Mono", Menlo, monospace' }}>{hint}</span>}
     </div>
   );
 }
 
 function MenuSeparator() {
-  return <div style={{ height: 1, background: '#ececef', margin: '4px 6px' }} />;
+  return <div style={{ height: 1, background: 'var(--ui-border-soft)', margin: '4px 6px' }} />;
 }
 
 function MenuButton({ name, openName, setOpenName, children, width }) {
@@ -56,8 +56,8 @@ function MenuButton({ name, openName, setOpenName, children, width }) {
         style={{
           padding: '6px 10px',
           fontSize: 12,
-          color: isOpen ? '#111827' : '#374151',
-          background: isOpen ? '#f3f4f6' : 'transparent',
+          color: isOpen ? 'var(--ui-text)' : 'var(--ui-text-secondary)',
+          background: isOpen ? 'var(--ui-hover)' : 'transparent',
           borderRadius: 4,
           cursor: 'pointer',
           userSelect: 'none',
@@ -71,10 +71,10 @@ function MenuButton({ name, openName, setOpenName, children, width }) {
           style={{
             position: 'absolute', left: 0, top: '100%', marginTop: 4,
             minWidth: width || 200,
-            background: '#fff',
-            border: '1px solid #e5e7eb',
+            background: 'var(--ui-surface)',
+            border: '1px solid var(--ui-border)',
             borderRadius: 6,
-            boxShadow: '0 8px 28px rgba(15, 23, 42, 0.15)',
+            boxShadow: '0 8px 28px var(--ui-shadow)',
             padding: 4,
             zIndex: 60,
             fontFamily: 'system-ui, -apple-system, sans-serif',
@@ -137,7 +137,7 @@ export function StyleGuideModal({ onClose }) {
       aria-modal="true"
       style={{
         position: 'fixed', inset: 0, zIndex: 9000,
-        background: 'rgba(15, 23, 42, 0.45)',
+        background: 'var(--ui-overlay)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontFamily: 'system-ui, sans-serif',
       }}
@@ -145,25 +145,25 @@ export function StyleGuideModal({ onClose }) {
     >
       <div onClick={(e) => e.stopPropagation()} style={{
         width: 360,
-        background: '#fff',
+        background: 'var(--ui-surface)',
         borderRadius: 10,
-        boxShadow: '0 24px 60px rgba(15,23,42,0.3)',
+        boxShadow: '0 24px 60px var(--ui-shadow)',
         overflow: 'hidden',
       }}>
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid #ececef', fontWeight: 600, fontSize: 14, color: '#111827' }}>
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--ui-border-soft)', fontWeight: 600, fontSize: 14, color: 'var(--ui-text)' }}>
           Style Guide
         </div>
-        <div style={{ padding: '20px 16px 16px', color: '#374151', fontSize: 13, lineHeight: 1.6 }}>
+        <div style={{ padding: '20px 16px 16px', color: 'var(--ui-text-secondary)', fontSize: 13, lineHeight: 1.6 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span style={{ color: '#6b7280', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6 }}>Version</span>
-            <span style={{ fontWeight: 600, fontSize: 18, color: '#111827' }}>v1.6</span>
+            <span style={{ color: 'var(--ui-text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6 }}>Version</span>
+            <span style={{ fontWeight: 600, fontSize: 18, color: 'var(--ui-text)' }}>v1.6</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10 }}>
-            <span style={{ color: '#6b7280', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6 }}>Updated</span>
-            <span style={{ fontSize: 13, color: '#111827' }}>10 October 2024</span>
+            <span style={{ color: 'var(--ui-text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6 }}>Updated</span>
+            <span style={{ fontSize: 13, color: 'var(--ui-text)' }}>10 October 2024</span>
           </div>
         </div>
-        <div style={{ padding: '10px 16px', background: '#fafafa', borderTop: '1px solid #ececef', display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ padding: '10px 16px', background: 'var(--ui-surface-subtle)', borderTop: '1px solid var(--ui-border-soft)', display: 'flex', justifyContent: 'flex-end' }}>
           <button
             onClick={onClose}
             style={{
